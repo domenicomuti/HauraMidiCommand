@@ -10,7 +10,9 @@ scripts:
   analyze:
     run: dart run melos exec --concurrency=1 --ignore=flutter_midi_command_example -- "flutter analyze --no-fatal-infos --no-fatal-warnings"
   test:
-    run: dart run melos exec --dir-exists=test --concurrency=1 --ignore=flutter_midi_command_example -- "flutter test"
+    run: dart run melos exec --dir-exists=test --concurrency=1 --ignore=flutter_midi_command_example --ignore=flutter_midi_command_web -- "flutter test"
+  test:web:chrome:
+    run: dart run melos exec --scope=flutter_midi_command_web -- "flutter test --platform chrome"
   test:native:android:
     run: cd example/android && ./gradlew :flutter_midi_command_android:testDebugUnitTest
   test:native:darwin:

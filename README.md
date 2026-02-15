@@ -5,12 +5,15 @@ A Flutter plugin for sending and receiving MIDI messages between Flutter and phy
 Wraps CoreMIDI/android.media.midi/ALSA/win32 in a thin dart/flutter layer.
 Supports
 
-| Transports | iOS | macos | Android | Linux | Windows |
-|---|---|---|---|---|---|
-| USB | &check; | &check; | &check; | &check; | &check; |
-| BLE | &check; | &check; | &check; | &cross; | &check; |
-| Virtual | &check; | &check; | &check; | &cross; | &cross; |
-| Network Session | &check; | &check; | &cross; | &cross; | &cross; |
+| Transports | iOS | macos | Android | Linux | Windows | Web |
+|---|---|---|---|---|---|---|
+| USB | &check; | &check; | &check; | &check; | &check; | &check;* |
+| BLE | &check; | &check; | &check; | &cross; | &check; | &cross;** |
+| Virtual | &check; | &check; | &check; | &cross; | &cross; | &cross; |
+| Network Session | &check; | &check; | &cross; | &cross; | &cross; | &cross; |
+
+\* via browser Web MIDI API support.
+\** BLE MIDI on web is not handled by `flutter_midi_command_ble`; web MIDI exposure depends on browser/OS.
 
 
 ## To install
@@ -22,6 +25,7 @@ Supports
 - If BLE is enabled on iOS, add `NSBluetoothAlwaysUsageDescription` (and related bluetooth/location keys as required by your BLE flow) to `Info.plist`.
 - If using network MIDI on iOS, add `NSLocalNetworkUsageDescription`.
 - On Linux, make sure ALSA is installed.
+- On web, use HTTPS and a browser with Web MIDI enabled (for example Chrome/Edge).
 
 ## Getting Started
 
@@ -84,6 +88,8 @@ This repository is now managed as a melos monorepo.
 - `packages/flutter_midi_command_linux`: Linux serial MIDI wrapper
 - `packages/flutter_midi_command_windows`: Windows serial MIDI wrapper
 - `packages/flutter_midi_command_ble`: shared BLE MIDI transport using `universal_ble`
+- `packages/flutter_midi_command_web`: browser Web MIDI transport
+  See `packages/flutter_midi_command_web/README.md` for web-specific runtime/permission details.
 
 ### Transport policies
 
@@ -148,6 +154,7 @@ final stateStream = midi.onBluetoothStateChanged;
 
 `MidiCommandPlatform` now only describes native serial/host MIDI operations.
 BLE lives in `MidiBleTransport`, implemented in shared Dart (`flutter_midi_command_ble`).
+Web MIDI is implemented by `flutter_midi_command_web` using browser Web MIDI APIs.
 
 ### Native API contracts with Pigeon
 

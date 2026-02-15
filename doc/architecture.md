@@ -20,9 +20,9 @@
 - Packages are split under `packages/` for platform wrappers plus shared BLE transport.
 - Android and Linux wrappers focus on host/native serial MIDI behavior.
 - Host/Flutter messaging contracts are generated from `pigeons/midi_api.dart` through Pigeon.
-- A web package exists as a placeholder (`flutter_midi_command_web`), currently explicit unsupported behavior.
+- The web package (`flutter_midi_command_web`) now wraps the browser Web MIDI API for serial/native MIDI access.
 
 ## Ongoing work
 
 - Expand native-only test automation (Android/iOS/macOS) in CI.
-- Implement real web MIDI transport behavior behind `flutter_midi_command_web`.
+- Expand browser-level automated tests for Web MIDI behavior and edge cases.

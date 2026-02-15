@@ -1,5 +1,5 @@
 name: flutter_midi_command_web
-description: Web implementation scaffold for flutter_midi_command.
+description: Web MIDI browser implementation for flutter_midi_command.
 version: 0.1.0
 publish_to: none
 
@@ -12,6 +12,7 @@ dependencies:
     sdk: flutter
   flutter_web_plugins:
     sdk: flutter
+  web: ^1.1.1
   flutter_midi_command_platform_interface:
     path: ../flutter_midi_command_platform_interface
 
