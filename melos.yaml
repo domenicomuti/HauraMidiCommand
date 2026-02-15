@@ -1,0 +1,12 @@
+name: flutter_midi_command_workspace
+packages:
+  - .
+  - example
+
+scripts:
+  analyze:
+    run: melos exec -- "flutter analyze"
+  test:
+    run: melos exec --dir-exists=test -- "flutter test"
+  format:
+    run: melos exec -- "dart format --set-exit-if-changed ."

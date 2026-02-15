@@ -49,3 +49,35 @@ For help getting started with Flutter, view our online
 [documentation](https://flutter.dev/).
 
 For help on editing plugin code, view the [documentation](https://docs.flutter.dev/development/packages-and-plugins/developing-packages#edit-plugin-package).
+
+## Workspace and architecture
+
+This repository now includes a `melos.yaml` workspace configuration to support a monorepo migration across the plugin family.
+
+### Transport policies
+
+You can explicitly include/exclude MIDI transports at runtime:
+
+```dart
+final midi = MidiCommand();
+midi.configureTransportPolicy(
+  const MidiTransportPolicy(
+    excludedTransports: {MidiTransport.ble},
+  ),
+);
+```
+
+When a transport is disabled, transport-specific calls throw a `StateError`. This allows apps to remove BLE flows and permissions from app-level configuration when BLE is not needed.
+
+### Native API contracts with Pigeon
+
+Pigeon definitions are tracked in `pigeons/midi_api.dart` and should be used as the source-of-truth for generated host/flutter messaging code.
+
+### Platform package split
+
+As part of the monorepo migration, Android and Linux are intended to be split into separate platform packages so each wrapper can target its host MIDI stack independently:
+
+- Android package: wraps `android.media.midi`
+- Linux package: wraps ALSA MIDI APIs
+
+CI builds are separated accordingly to catch platform-specific regressions independently.

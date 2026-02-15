@@ -5,6 +5,7 @@ import 'package:flutter_midi_command_platform_interface/flutter_midi_command_pla
 
 export 'package:flutter_midi_command_platform_interface/flutter_midi_command_platform_interface.dart'
     show MidiDevice, MidiPacket, MidiPort;
+export 'src/midi_transports.dart';
 
 enum BluetoothState {
   poweredOn,
@@ -17,6 +18,13 @@ enum BluetoothState {
 }
 
 class MidiCommand {
+  static const Set<MidiTransport> _supportedTransports = {
+    MidiTransport.serial,
+    MidiTransport.ble,
+    MidiTransport.network,
+    MidiTransport.virtualDevice,
+  };
+
   factory MidiCommand() {
     if (_instance == null) {
       _instance = MidiCommand._();
@@ -26,7 +34,30 @@ class MidiCommand {
 
   MidiCommand._();
 
-  dispose() {
+
+  MidiTransportPolicy _transportPolicy = const MidiTransportPolicy();
+
+  Set<MidiTransport> get enabledTransports =>
+      _transportPolicy.resolveEnabledTransports(_supportedTransports);
+
+  MidiCapabilities get capabilities => MidiCapabilities(
+        supportedTransports: _supportedTransports,
+        enabledTransports: enabledTransports,
+      );
+
+  void configureTransportPolicy(MidiTransportPolicy policy) {
+    _transportPolicy = policy;
+  }
+
+  bool isTransportEnabled(MidiTransport transport) =>
+      enabledTransports.contains(transport);
+
+  void _requireTransport(MidiTransport transport, String operation) {
+    if (!isTransportEnabled(transport)) {
+      throw StateError('$operation requires transport $transport, but it is disabled by policy.');
+    }
+  }
+  void dispose() {
     _bluetoothStateStream.close();
     _onBluetoothStateChangedStreamSubscription?.cancel();
   }
@@ -82,6 +113,8 @@ class MidiCommand {
 
   /// Starts the bluetooth central
   Future<void> startBluetoothCentral() async {
+    _requireTransport(MidiTransport.ble, 'startBluetoothCentral');
+
     if (_bluetoothCentralIsStarted) {
       return;
     }
@@ -94,6 +127,7 @@ class MidiCommand {
   ///
   /// Found devices will be included in the list returned by [devices]
   Future<void> waitUntilBluetoothIsInitialized() async {
+    _requireTransport(MidiTransport.ble, 'waitUntilBluetoothIsInitialized');
     bool isInitialized() => _bluetoothState != BluetoothState.unknown;
 
     print(_bluetoothState);
@@ -114,11 +148,13 @@ class MidiCommand {
   ///
   /// Found devices will be included in the list returned by [devices]
   Future<void> startScanningForBluetoothDevices() async {
+    _requireTransport(MidiTransport.ble, 'startScanningForBluetoothDevices');
     return _platform.startScanningForBluetoothDevices();
   }
 
   /// Stop scanning for BLE MIDI devices
   void stopScanningForBluetoothDevices() {
+    _requireTransport(MidiTransport.ble, 'stopScanningForBluetoothDevices');
     _platform.stopScanningForBluetoothDevices();
   }
 
@@ -172,12 +208,14 @@ class MidiCommand {
   /// Other apps can receive MIDI from this source.
   /// Currently only supported on iOS.
   void addVirtualDevice({String? name}) {
+    _requireTransport(MidiTransport.virtualDevice, 'addVirtualDevice');
     _platform.addVirtualDevice(name: name);
   }
 
   /// Removes a previously created virtual MIDI source.
   /// Currently only supported on iOS.
   void removeVirtualDevice({String? name}) {
+    _requireTransport(MidiTransport.virtualDevice, 'removeVirtualDevice');
     _platform.removeVirtualDevice(name: name);
   }
 
@@ -185,6 +223,7 @@ class MidiCommand {
   ///
   /// This is functional on iOS only, will return null on other platforms
   Future<bool?> get isNetworkSessionEnabled {
+    _requireTransport(MidiTransport.network, 'isNetworkSessionEnabled');
     return _platform.isNetworkSessionEnabled;
   }
 
@@ -192,6 +231,7 @@ class MidiCommand {
   ///
   /// This is functional on iOS only
   void setNetworkSessionEnabled(bool enabled) {
+    _requireTransport(MidiTransport.network, 'setNetworkSessionEnabled');
     _platform.setNetworkSessionEnabled(enabled);
   }
 }
