@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_midi_command_ble/flutter_midi_command_ble.dart';
 import 'package:flutter_midi_command/flutter_midi_command.dart';
 
 import 'controller.dart';
@@ -29,6 +30,7 @@ class MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    _midiCommand.configureBleTransport(UniversalBleMidiTransport());
 
     _setupSubscription = _midiCommand.onMidiSetupChanged?.listen((data) async {
       if (kDebugMode) {
@@ -52,6 +54,7 @@ class MyAppState extends State<MyApp> {
   void dispose() {
     _setupSubscription?.cancel();
     _bluetoothStateSubscription?.cancel();
+    _midiCommand.configureBleTransport(null);
     super.dispose();
   }
 
@@ -64,16 +67,28 @@ class MyAppState extends State<MyApp> {
     }
   }
 
-  IconData _deviceIconForType(String type) {
+  IconData _deviceIconForType(MidiDeviceType type) {
     switch (type) {
-      case "native":
+      case MidiDeviceType.serial:
         return Icons.devices;
-      case "network":
+      case MidiDeviceType.network:
         return Icons.language;
-      case "BLE":
+      case MidiDeviceType.ble:
         return Icons.bluetooth;
       default:
         return Icons.device_unknown;
+    }
+  }
+
+  IconData _connectionIconForState(MidiConnectionState state) {
+    switch (state) {
+      case MidiConnectionState.connected:
+        return Icons.radio_button_on;
+      case MidiConnectionState.connecting:
+      case MidiConnectionState.disconnecting:
+        return Icons.sync;
+      case MidiConnectionState.disconnected:
+        return Icons.radio_button_off;
     }
   }
 
@@ -146,11 +161,9 @@ class MyAppState extends State<MyApp> {
 
                     // Start bluetooth
                     if (kDebugMode) {
-                      print("start ble central");
+                      print("start bluetooth");
                     }
-                    await _midiCommand
-                        .startBluetoothCentral()
-                        .catchError((err) {
+                    await _midiCommand.startBluetooth().catchError((err) {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         content: Text(err),
                       ));
@@ -242,10 +255,10 @@ class MyAppState extends State<MyApp> {
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                       subtitle: Text(
-                          "ins:${device.inputPorts.length} outs:${device.outputPorts.length}, ${device.id}, ${device.type}"),
-                      leading: Icon(device.connected
-                          ? Icons.radio_button_on
-                          : Icons.radio_button_off),
+                          "ins:${device.inputPorts.length} outs:${device.outputPorts.length}, ${device.id}, ${device.type.wireValue}, ${device.connectionState.name}"),
+                      leading: Icon(
+                        _connectionIconForState(device.connectionState),
+                      ),
                       trailing: Icon(_deviceIconForType(device.type)),
                       onLongPress: () {
                         _midiCommand.stopScanningForBluetoothDevices();
@@ -258,11 +271,19 @@ class MyAppState extends State<MyApp> {
                         });
                       },
                       onTap: () {
+                        if (device.connectionState ==
+                                MidiConnectionState.connecting ||
+                            device.connectionState ==
+                                MidiConnectionState.disconnecting) {
+                          return;
+                        }
+
                         if (device.connected) {
                           if (kDebugMode) {
                             print("disconnect");
                           }
                           _midiCommand.disconnectDevice(device);
+                          setState(() {});
                         } else {
                           if (kDebugMode) {
                             print("connect");
@@ -276,6 +297,7 @@ class MyAppState extends State<MyApp> {
                                 content: Text(
                                     "Error: ${(err as PlatformException?)?.message}")));
                           });
+                          setState(() {});
                         }
                       },
                     );

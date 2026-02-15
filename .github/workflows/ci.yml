@@ -8,6 +8,17 @@ on:
       - master
 
 jobs:
+  pigeon_contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+      - run: dart run melos bootstrap
+      - run: dart run pigeon --input pigeons/midi_api.dart
+      - run: git diff --exit-code -- packages/flutter_midi_command_platform_interface/lib/src/pigeon packages/flutter_midi_command_android/android/src/main/kotlin/com/invisiblewrench/fluttermidicommand/pigeon packages/flutter_midi_command_darwin/ios/Classes/pigeon
+
   dart_checks:
     runs-on: ubuntu-latest
     steps:
@@ -15,28 +26,27 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.0'
-      - run: flutter pub get
-      - run: flutter analyze
-      - run: flutter test
+      - run: dart pub global activate melos
+      - run: melos bootstrap
+      - name: Android native unit tests
+        run: ./gradlew :flutter_midi_command_android:testDebugUnitTest
+        working-directory: example/android
+      - run: melos run analyze
+      - run: melos run test
 
-  build_android:
+  build_example_android:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: example
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.0'
-      - run: flutter pub get
-      - run: flutter build apk --debug
+      - run: dart pub global activate melos
+      - run: melos bootstrap
+      - run: melos run build:example:android
 
-  build_linux:
+  build_example_linux:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: example
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -46,32 +56,35 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
-      - run: flutter pub get
-      - run: flutter build linux --debug
+      - run: dart pub global activate melos
+      - run: melos bootstrap
+      - run: melos run build:example:linux
 
-  build_ios_macos:
+  build_example_ios_macos:
     runs-on: macos-latest
-    defaults:
-      run:
-        working-directory: example
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.0'
-      - run: flutter pub get
-      - run: flutter build ios --debug --no-codesign
-      - run: flutter build macos --debug
+      - run: dart pub global activate melos
+      - run: melos bootstrap
+      - name: Darwin native parser smoke test
+        run: |
+          swiftc packages/flutter_midi_command_darwin/ios/Classes/MidiPacketParser.swift \
+                 packages/flutter_midi_command_darwin/ios/Tests/midi_packet_parser_smoke.swift \
+                 -o /tmp/midi_packet_parser_smoke
+          /tmp/midi_packet_parser_smoke
+      - run: melos run build:example:ios
+      - run: melos run build:example:macos
 
-  build_windows:
+  build_example_windows:
     runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: example
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.0'
-      - run: flutter pub get
-      - run: flutter build windows --debug
+      - run: dart pub global activate melos
+      - run: melos bootstrap
+      - run: melos run build:example:windows

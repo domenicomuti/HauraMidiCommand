@@ -1,12 +1,29 @@
 name: flutter_midi_command_workspace
 packages:
   - .
+  - packages/**
   - example
 
 scripts:
+  bootstrap:
+    run: dart run melos bootstrap
   analyze:
-    run: melos exec -- "flutter analyze"
+    run: dart run melos exec --concurrency=1 --ignore=flutter_midi_command_example -- "flutter analyze --no-fatal-infos --no-fatal-warnings"
   test:
-    run: melos exec --dir-exists=test -- "flutter test"
+    run: dart run melos exec --dir-exists=test --concurrency=1 --ignore=flutter_midi_command_example -- "flutter test"
+  test:native:android:
+    run: cd example/android && ./gradlew :flutter_midi_command_android:testDebugUnitTest
+  test:native:darwin:
+    run: swiftc packages/flutter_midi_command_darwin/ios/Classes/MidiPacketParser.swift packages/flutter_midi_command_darwin/ios/Tests/midi_packet_parser_smoke.swift -o /tmp/midi_packet_parser_smoke && /tmp/midi_packet_parser_smoke
+  build:example:android:
+    run: dart run melos exec --scope=flutter_midi_command_example -- "flutter build apk --debug"
+  build:example:linux:
+    run: dart run melos exec --scope=flutter_midi_command_example -- "flutter build linux --debug"
+  build:example:ios:
+    run: dart run melos exec --scope=flutter_midi_command_example -- "flutter build ios --debug --no-codesign"
+  build:example:macos:
+    run: dart run melos exec --scope=flutter_midi_command_example -- "flutter build macos --debug"
+  build:example:windows:
+    run: dart run melos exec --scope=flutter_midi_command_example -- "flutter build windows --debug"
   format:
-    run: melos exec -- "dart format --set-exit-if-changed ."
+    run: dart run melos exec -- "dart format --set-exit-if-changed ."

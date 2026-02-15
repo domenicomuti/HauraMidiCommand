@@ -15,9 +15,14 @@
 - `MidiTransportPolicy` and `MidiCapabilities` are exposed in Dart.
 - `MidiCommand.configureTransportPolicy(...)` allows include/exclude control per transport.
 
-## Follow-up
+## Implemented structure
 
-- Split packages under `packages/` for core BLE transport and per-platform wrappers.
-- Create platform-specific packages for Android (Media MIDI APIs) and Linux (ALSA APIs) to keep host wrappers focused and independent.
-- Wire generated Pigeon stubs on Android/iOS/macOS/native implementations.
-- Add web package (`flutter_midi_command_web`) as stretch deliverable.
+- Packages are split under `packages/` for platform wrappers plus shared BLE transport.
+- Android and Linux wrappers focus on host/native serial MIDI behavior.
+- Host/Flutter messaging contracts are generated from `pigeons/midi_api.dart` through Pigeon.
+- A web package exists as a placeholder (`flutter_midi_command_web`), currently explicit unsupported behavior.
+
+## Ongoing work
+
+- Expand native-only test automation (Android/iOS/macOS) in CI.
+- Implement real web MIDI transport behavior behind `flutter_midi_command_web`.

@@ -1,0 +1,19 @@
+name: flutter_midi_command_ble
+description: Shared BLE MIDI transport for flutter_midi_command based on universal_ble.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.7.0 <4.0.0"
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_midi_command_platform_interface:
+    path: ../flutter_midi_command_platform_interface
+  universal_ble: ^0.21.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
