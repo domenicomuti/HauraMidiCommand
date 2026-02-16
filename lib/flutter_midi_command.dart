@@ -25,6 +25,8 @@ enum BluetoothState {
   other,
 }
 
+enum _MidiDeviceRoute { platform, bleTransport }
+
 class MidiCommand {
   static const Set<MidiTransport> supportedTransports = {
     MidiTransport.serial,
@@ -47,6 +49,10 @@ class MidiCommand {
 
   MidiTransportPolicy _transportPolicy = const MidiTransportPolicy();
   MidiBleTransport? _bleTransport;
+  final Expando<_MidiDeviceRoute> _deviceRouteByInstance =
+      Expando<_MidiDeviceRoute>('midi_device_route');
+  final Map<String, _MidiDeviceRoute> _deviceRouteById =
+      <String, _MidiDeviceRoute>{};
 
   Set<MidiTransport> get enabledTransports =>
       _transportPolicy.resolveEnabledTransports(supportedTransports);
@@ -73,6 +79,7 @@ class MidiCommand {
     _bleTransport = transport;
     _bluetoothIsStarted = false;
     _bluetoothState = BluetoothState.unknown;
+    _deviceRouteById.clear();
   }
 
   bool isTransportEnabled(MidiTransport transport) =>
@@ -105,6 +112,7 @@ class MidiCommand {
     _bluetoothIsStarted = false;
     _bluetoothStartFuture = null;
     _bluetoothState = BluetoothState.unknown;
+    _deviceRouteById.clear();
     if (identical(_instance, this)) {
       _instance = null;
     }
@@ -163,11 +171,22 @@ class MidiCommand {
   /// Gets a list of available MIDI devices and returns it
   Future<List<MidiDevice>?> get devices async {
     final devices = <MidiDevice>[];
+    _deviceRouteById.clear();
+
     final platformDevices = await _platform.devices ?? <MidiDevice>[];
-    devices.addAll(platformDevices);
-    if (_bleTransport != null && isTransportEnabled(MidiTransport.ble)) {
-      devices.addAll(await _bleTransport!.devices);
+    for (final device in platformDevices) {
+      _rememberDeviceRoute(device, _MidiDeviceRoute.platform);
     }
+    devices.addAll(platformDevices);
+
+    if (_bleTransport != null && isTransportEnabled(MidiTransport.ble)) {
+      final bleDevices = await _bleTransport!.devices;
+      for (final device in bleDevices) {
+        _rememberDeviceRoute(device, _MidiDeviceRoute.bleTransport);
+      }
+      devices.addAll(bleDevices);
+    }
+
     return devices;
   }
 
@@ -252,7 +271,8 @@ class MidiCommand {
     final connectionEstablished = _awaitConnectedOrFailed(device);
 
     try {
-      if (device.type == MidiDeviceType.ble) {
+      final route = _resolveDeviceRoute(device);
+      if (route == _MidiDeviceRoute.bleTransport) {
         _requireTransport(MidiTransport.ble, 'connectToDevice');
         _requireBleTransport('connectToDevice');
         await _bleTransport!.connectToDevice(device);
@@ -289,7 +309,8 @@ class MidiCommand {
     if (device.connected) {
       device.setConnectionState(MidiConnectionState.disconnecting);
     }
-    if (device.type == MidiDeviceType.ble) {
+    final route = _resolveDeviceRoute(device);
+    if (route == _MidiDeviceRoute.bleTransport) {
       _requireTransport(MidiTransport.ble, 'disconnectDevice');
       _requireBleTransport('disconnectDevice');
       _bleTransport!.disconnectDevice(device);
@@ -302,12 +323,29 @@ class MidiCommand {
   void teardown() {
     _platform.teardown();
     _bleTransport?.teardown();
+    _deviceRouteById.clear();
   }
 
   /// Sends data to the currently connected device
   ///
   /// Data is an UInt8List of individual MIDI command bytes
   void sendData(Uint8List data, {String? deviceId, int? timestamp}) {
+    if (deviceId != null) {
+      final route = _deviceRouteById[deviceId];
+      if (route == _MidiDeviceRoute.platform) {
+        _platform.sendData(data, deviceId: deviceId, timestamp: timestamp);
+        _txStreamCtrl.add(data);
+        return;
+      }
+      if (route == _MidiDeviceRoute.bleTransport &&
+          _bleTransport != null &&
+          isTransportEnabled(MidiTransport.ble)) {
+        _bleTransport!.sendData(data, deviceId: deviceId, timestamp: timestamp);
+        _txStreamCtrl.add(data);
+        return;
+      }
+    }
+
     _platform.sendData(data, deviceId: deviceId, timestamp: timestamp);
     if (_bleTransport != null && isTransportEnabled(MidiTransport.ble)) {
       _bleTransport!.sendData(data, deviceId: deviceId, timestamp: timestamp);
@@ -401,7 +439,8 @@ class MidiCommand {
     }
 
     final completer = Completer<void>();
-    var wasConnecting = device.connectionState == MidiConnectionState.connecting;
+    var wasConnecting =
+        device.connectionState == MidiConnectionState.connecting;
     late StreamSubscription<MidiConnectionState> sub;
 
     void completeSuccess() {
@@ -440,5 +479,30 @@ class MidiCommand {
     }
 
     return completer.future.whenComplete(() => sub.cancel());
+  }
+
+  void _rememberDeviceRoute(MidiDevice device, _MidiDeviceRoute route) {
+    _deviceRouteByInstance[device] = route;
+    if (device.id.isNotEmpty) {
+      _deviceRouteById.putIfAbsent(device.id, () => route);
+    }
+  }
+
+  _MidiDeviceRoute _resolveDeviceRoute(MidiDevice device) {
+    final byInstance = _deviceRouteByInstance[device];
+    if (byInstance != null) {
+      return byInstance;
+    }
+
+    final byId = _deviceRouteById[device.id];
+    if (byId != null) {
+      return byId;
+    }
+
+    if (device.type == MidiDeviceType.ble && _bleTransport != null) {
+      return _MidiDeviceRoute.bleTransport;
+    }
+
+    return _MidiDeviceRoute.platform;
   }
 }

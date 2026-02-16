@@ -164,6 +164,13 @@ class _FailedConnectPlatform extends _FakePlatform {
   }
 }
 
+class _FakePlatformWithBleHost extends _FakePlatform {
+  @override
+  Future<List<MidiDevice>?> get devices async => [
+    MidiDevice('host-ble-1', 'Host BLE', MidiDeviceType.ble, false),
+  ];
+}
+
 void main() {
   setUp(() {
     MidiCommand.resetForTest();
@@ -373,7 +380,12 @@ void main() {
     MidiCommand.setPlatformOverride(platform);
     final midi = MidiCommand(bleTransport: ble);
 
-    final serial = MidiDevice('serial-1', 'Serial', MidiDeviceType.serial, true);
+    final serial = MidiDevice(
+      'serial-1',
+      'Serial',
+      MidiDeviceType.serial,
+      true,
+    );
     final bleDevice = MidiDevice('ble-1', 'BLE', MidiDeviceType.ble, true);
 
     midi.disconnectDevice(serial);
@@ -382,6 +394,34 @@ void main() {
     expect(platform.disconnected, contains('serial-1'));
     expect(ble.disconnected, contains('ble-1'));
   });
+
+  test(
+    'host BLE devices keep ble type and still route via platform backend',
+    () async {
+      final platform = _FakePlatformWithBleHost();
+      final ble = _FakeBleTransport();
+      MidiCommand.setPlatformOverride(platform);
+      final midi = MidiCommand(bleTransport: ble);
+
+      final device = (await midi.devices)!.first;
+      expect(device.type, MidiDeviceType.ble);
+
+      await midi.connectToDevice(device);
+      expect(platform.connected, contains('host-ble-1'));
+      expect(ble.connected, isEmpty);
+
+      midi.sendData(
+        Uint8List.fromList([0x90, 0x3C, 0x64]),
+        deviceId: device.id,
+      );
+      expect(platform.sent.length, 1);
+      expect(ble.sent, isEmpty);
+
+      midi.disconnectDevice(device);
+      expect(platform.disconnected, contains('host-ble-1'));
+      expect(ble.disconnected, isEmpty);
+    },
+  );
 
   test('sendData does not fan out to BLE when BLE transport is excluded', () {
     final platform = _FakePlatform();

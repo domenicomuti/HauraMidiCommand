@@ -19,7 +19,7 @@ Supports
 ## To install
 
 - Make sure your project is created with Kotlin and Swift support.
-- Add `flutter_midi_command` to your `pubspec.yaml` (path/git while this monorepo is unpublished).
+- Add `flutter_midi_command` to your `pubspec.yaml`.
 - Add `flutter_midi_command_ble` only if you want BLE MIDI support.
 - In ios/Podfile uncomment and change the platform to 11.0 `platform :ios, '11.0'`
 - If BLE is enabled on iOS, add `NSBluetoothAlwaysUsageDescription` (and related bluetooth/location keys as required by your BLE flow) to `Info.plist`.
@@ -29,28 +29,89 @@ Supports
 
 ## Getting Started
 
-This plugin is built using Swift and Kotlin on the native side, so make sure your project supports this.
+The snippet below shows a practical integration pattern with optional BLE, device discovery, connection, and send/receive flow.
 
-Import flutter_midi_command
+```dart
+import 'dart:async';
+import 'dart:typed_data';
 
-`import 'package:flutter_midi_command/flutter_midi_command.dart';`
+import 'package:flutter_midi_command/flutter_midi_command.dart';
+// Optional: remove this import and BLE setup if your app is serial-only.
+import 'package:flutter_midi_command_ble/flutter_midi_command_ble.dart';
 
-- Get a list of available MIDI devices by calling `MidiCommand().devices` which returns a list of `MidiDevice`
-- Start bluetooth subsystem by calling `MidiCommand().startBluetooth()`
-- Observe the bluetooth system state by listening to `MidiCommand().onBluetoothStateChanged`
-- Get the current bluetooth system state from `MidiCommand().bluetoothState`
-- Start scanning for BLE MIDI devices by calling `MidiCommand().startScanningForBluetoothDevices()`
-- Connect to a specific `MidiDevice` by calling `MidiCommand().connectToDevice(selectedDevice)`.
-  The returned `Future` completes when a connection is established, throws a `StateError` when connection fails, or throws on timeout (default 10 seconds).
-- Stop scanning for BLE MIDI devices by calling `MidiCommand().stopScanningForBluetoothDevices()`
-- Disconnect from a device by calling `MidiCommand().disconnectDevice(device)`
-- Listen for updates in the MIDI setup by subscribing to `MidiCommand().onMidiSetupChanged`
-- Listen for incoming MIDI messages from the current device by subscribing to `MidiCommand().onMidiDataReceived`, after which the listener will receive inbound MIDI messages as a `Uint8List` of variable length.
-- Send a MIDI message by calling `MidiCommand.sendData(data)`, where data is an UInt8List of bytes following the MIDI spec.
-- Or use the various `MidiCommand` subtypes to send PC, CC, NoteOn and NoteOff messages.
-- Use `MidiCommand().addVirtualDevice(name: "Your Device Name")` to create a virtual MIDI destination and a virtual MIDI source. These virtual MIDI devices show up in other apps and can be used by other apps to send and receive MIDI to or from your app. The name parameter is ignored on Android and the Virtual Device is always called FlutterMIDICommand. To make this feature work on iOS, enable background audio for your app, i.e., add key `UIBackgroundModes` with value `audio` to your app's `info.plist` file.
+class MidiSessionController {
+  MidiSessionController({required this.enableBle});
 
-See example folder for how to use.
+  final bool enableBle;
+  final MidiCommand midi = MidiCommand();
+  StreamSubscription<MidiPacket>? _rxSub;
+  StreamSubscription<String>? _setupSub;
+  MidiDevice? selectedDevice;
+
+  Future<void> initialize() async {
+    if (enableBle) {
+      midi.configureBleTransport(UniversalBleMidiTransport());
+      await midi.startBluetooth();
+      await midi.waitUntilBluetoothIsInitialized();
+      await midi.startScanningForBluetoothDevices();
+    } else {
+      midi.configureBleTransport(null);
+      midi.configureTransportPolicy(
+        const MidiTransportPolicy(
+          excludedTransports: {MidiTransport.ble},
+        ),
+      );
+    }
+
+    _setupSub = midi.onMidiSetupChanged?.listen((_) async {
+      final devices = await midi.devices ?? const <MidiDevice>[];
+      if (devices.isNotEmpty && selectedDevice == null) {
+        selectedDevice = devices.first;
+      }
+    });
+
+    _rxSub = midi.onMidiDataReceived?.listen((packet) {
+      // Forward to your parser/state layer.
+      // Example:
+      // final source = packet.device.name;
+      // final bytes = packet.data;
+      // midiEventSink.add((source: source, data: bytes));
+    });
+  }
+
+  Future<void> connectFirstMatching(String query) async {
+    final devices = await midi.devices ?? const <MidiDevice>[];
+    final q = query.toLowerCase();
+    final device = devices.firstWhere(
+      (d) => d.name.toLowerCase().contains(q),
+      orElse: () => throw StateError('No MIDI device found for "$query".'),
+    );
+    await midi.connectToDevice(device);
+    selectedDevice = device;
+  }
+
+  void sendMiddleC() {
+    final targetId = selectedDevice?.id;
+    midi.sendData(Uint8List.fromList([0x90, 60, 100]), deviceId: targetId);
+    Future<void>.delayed(const Duration(milliseconds: 200), () {
+      midi.sendData(Uint8List.fromList([0x80, 60, 0]), deviceId: targetId);
+    });
+  }
+
+  Future<void> dispose() async {
+    await _rxSub?.cancel();
+    await _setupSub?.cancel();
+    if (enableBle) {
+      midi.stopScanningForBluetoothDevices();
+    }
+    midi.dispose();
+  }
+}
+```
+
+`connectToDevice` completes when the connection is established, throws `StateError` on connection failure, and times out after 10 seconds by default.
+
+See `example/` for a complete app with UI and transport toggles.
 
 ### Dependency examples
 
@@ -58,19 +119,74 @@ With serial/native transports only:
 
 ```yaml
 dependencies:
-  flutter_midi_command:
-    path: ../flutter_midi_command
+  flutter_midi_command: ^1.0.0
 ```
 
 With BLE support enabled:
 
 ```yaml
 dependencies:
-  flutter_midi_command:
-    path: ../flutter_midi_command
-  flutter_midi_command_ble:
-    path: ../flutter_midi_command/packages/flutter_midi_command_ble
+  flutter_midi_command: ^1.0.0
+  flutter_midi_command_ble: ^0.1.0
 ```
+
+## Migration Guide (from older plugin versions)
+
+### 1) BLE moved to an optional package
+
+If you previously relied on built-in BLE behavior, add and attach the BLE transport explicitly:
+
+```yaml
+dependencies:
+  flutter_midi_command: ^1.0.0
+  flutter_midi_command_ble: ^0.1.0
+```
+
+```dart
+final midi = MidiCommand();
+midi.configureBleTransport(UniversalBleMidiTransport());
+```
+
+If you want to remove BLE entirely, omit `flutter_midi_command_ble` and/or call:
+
+```dart
+midi.configureBleTransport(null);
+```
+
+For local workspace development (like this monorepo), `path:` dependencies are still valid and used by the example app.
+
+### 2) Bluetooth API rename
+
+- Old: `startBluetoothCentral()`
+- New: `startBluetooth()`
+
+`onBluetoothStateChanged` and `bluetoothState` are still available.
+
+### 3) `MidiDevice.type` changed from `String` to enum
+
+Use `MidiDeviceType` instead of string comparisons:
+
+```dart
+if (device.type == MidiDeviceType.ble) {
+  // ...
+}
+```
+
+If you still need old wire values for logging or compatibility, use `device.type.wireValue`.
+
+### 4) Connection semantics are stricter
+
+`await midi.connectToDevice(device)` now resolves only when connected (or throws on failure/timeout), so completion means a real connected state.
+
+`MidiDevice` also exposes `onConnectionStateChanged` for reactive flows.
+
+### 5) Transport policies are first-class
+
+Use `MidiTransportPolicy` to enable/disable transports at runtime. Transport-specific calls throw `StateError` when that transport is disabled.
+
+### 6) Host-paired Bluetooth MIDI devices may be native-routed
+
+A host-native device can report `MidiDeviceType.ble` while still communicating through host MIDI APIs (for example paired CoreMIDI/Android host devices). Do not assume `type == ble` always means Dart BLE transport is used internally.
 
 For help getting started with Flutter, view our online
 [documentation](https://flutter.dev/).
@@ -122,10 +238,10 @@ final sub = selectedDevice.onConnectionStateChanged.listen((state) {
 
 ### Compile-time BLE include/exclude
 
-BLE is now optional at dependency level:
+Direct BLE scan/connect is optional at dependency level:
 
-- If you only depend on `flutter_midi_command`, BLE is not included.
-- To include BLE, add `flutter_midi_command_ble` and attach it to `MidiCommand`:
+- If you only depend on `flutter_midi_command`, no shared Dart BLE scanner/transport is attached.
+- To include shared Dart BLE discovery/connection, add `flutter_midi_command_ble` and attach it to `MidiCommand`:
 
 ```dart
 import 'package:flutter_midi_command/flutter_midi_command.dart';
@@ -141,6 +257,8 @@ To disable BLE completely:
 midi.configureBleTransport(null);
 ```
 
+Note: paired Bluetooth MIDI devices exposed by host native MIDI APIs can still appear in `MidiCommand().devices` with `MidiDeviceType.ble` and connect through the native backend.
+
 The normal BLE API remains unchanged:
 
 ```dart
@@ -153,7 +271,8 @@ final stateStream = midi.onBluetoothStateChanged;
 ### Architecture note
 
 `MidiCommandPlatform` now only describes native serial/host MIDI operations.
-BLE lives in `MidiBleTransport`, implemented in shared Dart (`flutter_midi_command_ble`).
+Shared BLE discovery/connection lives in `MidiBleTransport`, implemented in Dart (`flutter_midi_command_ble`).
+Host-native backends may also report paired Bluetooth devices as `MidiDeviceType.ble`.
 Web MIDI is implemented by `flutter_midi_command_web` using browser Web MIDI APIs.
 
 ### Native API contracts with Pigeon

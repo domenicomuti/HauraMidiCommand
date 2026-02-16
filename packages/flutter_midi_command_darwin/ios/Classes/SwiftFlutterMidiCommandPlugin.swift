@@ -162,9 +162,6 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, FlutterPlugin, MidiHostApi
             throw PigeonError(code: "MESSAGEERROR", message: "No device Id", details: nil)
         }
         let type = device.type ?? .unknown
-        if type == .ble {
-            throw PigeonError(code: "MESSAGEERROR", message: "bluetoothNotAvailable", details: nil)
-        }
         let mappedPorts = ports?.compactMap { port -> Port? in
             guard let id = port.id else {
                 return nil
@@ -277,7 +274,7 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, FlutterPlugin, MidiHostApi
             }
         } else // if type == "native" || if type == "virtual"
         {
-            let device = (type == "native" || type == "network" || type == "serial") ? ConnectedNativeDevice(id: deviceId, type: type, streamHandler: rxStreamHandler, client: midiClient, ports:ports)
+            let device = (type == "native" || type == "network" || type == "serial" || type.lowercased() == "ble" || type.lowercased() == "bluetooth") ? ConnectedNativeDevice(id: deviceId, type: type, streamHandler: rxStreamHandler, client: midiClient, ports:ports)
             : ConnectedVirtualDevice(id: deviceId, type: type, streamHandler: rxStreamHandler, client: midiClient, ports:ports)
             midiDebugLog("connected to \(device) \(deviceId)")
             connectedDevices[deviceId] = device
@@ -341,6 +338,56 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, FlutterPlugin, MidiHostApi
         }
         return isNetwork
     }
+
+    static func isBluetooth(device: MIDIObjectRef) -> Bool {
+        var owner: Unmanaged<CFString>?
+        let ownerStatus = MIDIObjectGetStringProperty(device, kMIDIPropertyDriverOwner, &owner)
+        if ownerStatus == noErr,
+           let ownerName = owner?.takeRetainedValue() as String?,
+           containsBluetoothMarker(in: ownerName) {
+            return true
+        }
+
+        var list: Unmanaged<CFPropertyList>?
+        MIDIObjectGetProperties(device, &list, true)
+        if let list = list,
+           let dict = list.takeRetainedValue() as? NSDictionary {
+            return containsBluetoothMarker(in: dict)
+        }
+
+        return false
+    }
+
+    private static func containsBluetoothMarker(in value: Any?) -> Bool {
+        guard let value else {
+            return false
+        }
+
+        if let stringValue = value as? String {
+            let normalized = stringValue.lowercased()
+            return normalized.contains("bluetooth") || normalized.contains("btle")
+        }
+
+        if let dictionary = value as? NSDictionary {
+            for entry in dictionary {
+                if containsBluetoothMarker(in: entry.key) || containsBluetoothMarker(in: entry.value) {
+                    return true
+                }
+            }
+            return false
+        }
+
+        if let array = value as? [Any] {
+            for item in array {
+                if containsBluetoothMarker(in: item) {
+                    return true
+                }
+            }
+            return false
+        }
+
+        return false
+    }
     
     
     func createPorts(count:Int, isInput: Bool) -> [MidiPort?] {
@@ -374,6 +421,7 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, FlutterPlugin, MidiHostApi
             }
             
             let isNetwork = SwiftFlutterMidiCommandPlugin.isNetwork(device: entity)
+            let isBluetooth = SwiftFlutterMidiCommandPlugin.isBluetooth(device: entity)
             
             var device : MIDIDeviceRef = 0
             status = MIDIEntityGetDevice(entity, &device)
@@ -398,7 +446,7 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, FlutterPlugin, MidiHostApi
             var hostDevice = nativeDevices[entity] ?? MidiHostDevice()
             hostDevice.name = name
             hostDevice.id = deviceId
-            hostDevice.type = isNetwork ? .network : .serial
+            hostDevice.type = isNetwork ? .network : (isBluetooth ? .ble : .serial)
             hostDevice.connected = connectedDevices.keys.contains(deviceId)
             hostDevice.outputs = createPorts(count: entityDestinationCount, isInput: false)
             nativeDevices[entity] = hostDevice
@@ -419,6 +467,7 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, FlutterPlugin, MidiHostApi
                 midiDebugLog("Error \(status) while calling MIDIEndpointGetEntity")
             }
             let isNetwork = SwiftFlutterMidiCommandPlugin.isNetwork(device: entity)
+            let isBluetooth = SwiftFlutterMidiCommandPlugin.isBluetooth(device: entity)
             let name = displayName(endpoint: source)
             
             var device : MIDIDeviceRef = 0
@@ -443,7 +492,7 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, FlutterPlugin, MidiHostApi
             var hostDevice = nativeDevices[entity] ?? MidiHostDevice()
             hostDevice.name = name
             hostDevice.id = deviceId
-            hostDevice.type = isNetwork ? .network : .serial
+            hostDevice.type = isNetwork ? .network : (isBluetooth ? .ble : .serial)
             hostDevice.connected = connectedDevices.keys.contains(deviceId)
             hostDevice.inputs = createPorts(count: entitySourceCount, isInput: true)
             nativeDevices[entity] = hostDevice

@@ -120,11 +120,6 @@ class FlutterMidiCommandPlugin : FlutterPlugin, ActivityAware, MidiHostApi {
       .mapNotNull { info ->
         val type = mapDeviceType(info)
 
-        // BLE transport is intentionally implemented in shared Dart code.
-        if (type == MidiDeviceType.BLE) {
-          return@mapNotNull null
-        }
-
         val id = Device.deviceIdForInfo(info)
         MidiHostDevice(
           id = id,
@@ -145,10 +140,6 @@ class FlutterMidiCommandPlugin : FlutterPlugin, ActivityAware, MidiHostApi {
     val deviceId = device.id ?: throw FlutterError("ERROR", "Missing device id", null)
     val deviceType = device.type ?: MidiDeviceType.UNKNOWN
 
-    if (deviceType == MidiDeviceType.BLE) {
-      throw FlutterError("ERROR", "bluetoothNotAvailable", null)
-    }
-
     val target = midiManager.devices.firstOrNull { info -> Device.deviceIdForInfo(info) == deviceId }
       ?: throw FlutterError("ERROR", "Device not found", null)
 
@@ -164,6 +155,7 @@ class FlutterMidiCommandPlugin : FlutterPlugin, ActivityAware, MidiHostApi {
         this::sendSetupUpdate,
         this::sendDataPacket,
         this::sendConnectionStateUpdate,
+        deviceType,
       )
       connectedDevices[connectedDevice.id] = connectedDevice
       connectedDevice.connect()

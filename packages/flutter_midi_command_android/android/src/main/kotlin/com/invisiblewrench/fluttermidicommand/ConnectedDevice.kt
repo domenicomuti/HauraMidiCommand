@@ -11,6 +11,7 @@ class ConnectedDevice(
     private val onSetupChanged: (String) -> Unit,
     private val onDataReceived: (MidiPacket) -> Unit,
     private val onConnectionChanged: (String, Boolean) -> Unit,
+    private val deviceType: MidiDeviceType,
 ) : Device(deviceIdForInfo(device.info), device.info.type.toString()) {
     var inputPort: MidiInputPort? = null
     var outputPort: MidiOutputPort? = null
@@ -28,7 +29,7 @@ class ConnectedDevice(
                 isOwnVirtualDevice = true
                 this.receiver = RXReceiver(_toHostDevice(MidiDeviceType.OWN_VIRTUAL), onDataReceived)
             } else {
-                this.receiver = RXReceiver(_toHostDevice(MidiDeviceType.SERIAL), onDataReceived)
+                this.receiver = RXReceiver(_toHostDevice(deviceType), onDataReceived)
                 if (it.inputPortCount > 0) {
                     this.inputPort = this.midiDevice.openInputPort(0)
                 }
