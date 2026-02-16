@@ -42,9 +42,9 @@ The snippet below shows a practical integration pattern with optional BLE, devic
 
 ```dart
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:flutter_midi_command/flutter_midi_command.dart';
+import 'package:flutter_midi_command/flutter_midi_command_messages.dart';
 // Optional: remove this import and BLE setup if your app is serial-only.
 import 'package:flutter_midi_command_ble/flutter_midi_command_ble.dart';
 
@@ -55,6 +55,8 @@ class MidiSessionController {
   final MidiCommand midi = MidiCommand();
   StreamSubscription<MidiPacket>? _rxSub;
   StreamSubscription<String>? _setupSub;
+  final Map<String, MidiMessageParser> _parserByDeviceId =
+      <String, MidiMessageParser>{};
   MidiDevice? selectedDevice;
 
   Future<void> initialize() async {
@@ -80,11 +82,14 @@ class MidiSessionController {
     });
 
     _rxSub = midi.onMidiDataReceived?.listen((packet) {
-      // Forward to your parser/state layer.
-      // Example:
-      // final source = packet.device.name;
-      // final bytes = packet.data;
-      // midiEventSink.add((source: source, data: bytes));
+      final parser = _parserByDeviceId.putIfAbsent(
+        packet.device.id,
+        MidiMessageParser.new,
+      );
+      final messages = parser.parse(packet.data, flushPendingNrpn: false);
+      for (final message in messages) {
+        _handleIncomingMessage(packet.device, message);
+      }
     });
   }
 
@@ -101,10 +106,32 @@ class MidiSessionController {
 
   void sendMiddleC() {
     final targetId = selectedDevice?.id;
-    midi.sendData(Uint8List.fromList([0x90, 60, 100]), deviceId: targetId);
+    midi.sendData(
+      NoteOnMessage(channel: 0, note: 60, velocity: 100).generateData(),
+      deviceId: targetId,
+    );
     Future<void>.delayed(const Duration(milliseconds: 200), () {
-      midi.sendData(Uint8List.fromList([0x80, 60, 0]), deviceId: targetId);
+      midi.sendData(
+        NoteOffMessage(channel: 0, note: 60, velocity: 0).generateData(),
+        deviceId: targetId,
+      );
     });
+  }
+
+  void _handleIncomingMessage(MidiDevice source, MidiMessage message) {
+    if (message is NoteOnMessage) {
+      // Example: route to synth engine / UI.
+      return;
+    }
+    if (message is CCMessage) {
+      // Example: map controllers to parameters.
+      return;
+    }
+    if (message is SysExMessage) {
+      // Example: parse manufacturer-specific payload.
+      return;
+    }
+    // Handle other typed messages as needed (PitchBendMessage, NRPN4Message, etc).
   }
 
   Future<void> dispose() async {
@@ -113,6 +140,10 @@ class MidiSessionController {
     if (enableBle) {
       midi.stopScanningForBluetoothDevices();
     }
+    for (final parser in _parserByDeviceId.values) {
+      parser.reset();
+    }
+    _parserByDeviceId.clear();
     midi.dispose();
   }
 }
@@ -121,6 +152,55 @@ class MidiSessionController {
 `connectToDevice` completes when the connection is established, throws `StateError` on connection failure, and times out after 10 seconds by default.
 
 See `example/` for a complete app with UI and transport toggles.
+
+## Message parser
+
+Use `MidiMessageParser` (or `MidiMessage.parse`) to turn raw incoming bytes into typed MIDI events.
+Keep one parser instance per input stream/device to preserve running-status and partial-message state correctly.
+
+- Supports running status.
+- Handles realtime bytes interleaved with channel and SysEx data.
+- Reassembles split packets across callback boundaries.
+- Recovers from malformed/incomplete byte sequences and resumes on the next valid status byte.
+
+```dart
+import 'dart:typed_data';
+
+import 'package:flutter_midi_command/flutter_midi_command.dart';
+import 'package:flutter_midi_command/flutter_midi_command_messages.dart';
+
+final MidiMessageParser parser = MidiMessageParser();
+
+void onPacket(MidiPacket packet) {
+  final messages = parser.parse(packet.data, flushPendingNrpn: false);
+  for (final message in messages) {
+    if (message is NoteOnMessage) {
+      print('NoteOn ch=${message.channel} note=${message.note} vel=${message.velocity}');
+    } else if (message is PitchBendMessage) {
+      print('Pitch bend ch=${message.channel} value=${message.bend}');
+    } else if (message is NRPN4Message) {
+      print('NRPN param=${message.parameter} value=${message.value}');
+    } else if (message is SysExMessage) {
+      print('SysEx bytes=${message.data.length}');
+    }
+  }
+}
+
+void onStreamClosed() {
+  // Flush pending partial NRPN/RPN state, if any.
+  final flushed = parser.parse(Uint8List(0), flushPendingNrpn: true);
+  for (final message in flushed) {
+    // Handle final pending message.
+  }
+  parser.reset();
+}
+```
+
+For simple one-shot payloads you can also call:
+
+```dart
+final messages = MidiMessage.parse(packet.data);
+```
 
 ### Dependency examples
 
