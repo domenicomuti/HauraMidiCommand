@@ -1,3 +1,7 @@
+## 1.0.0
+- Major API cleanup for the federated 1.0 architecture.
+- Typed device/port/packet models used across generated Pigeon host contracts.
+
 ## 0.4.3
 - Merged PR4 from felixdollack
 

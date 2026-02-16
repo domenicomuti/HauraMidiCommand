@@ -1,3 +1,7 @@
+## 1.0.0
+- Major release aligned with the federated monorepo architecture.
+- Updated to the 1.x platform interface and typed host models.
+
 ## 0.3.0
 - Updated to Flutter 3.10, Dart 3
 - Added error messages for missing functionality

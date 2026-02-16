@@ -1,7 +1,16 @@
 name: flutter_midi_command_darwin
 description: Darwin (iOS/macOS) serial MIDI wrapper for flutter_midi_command.
-version: 0.1.0
-publish_to: none
+version: 1.0.0
+homepage: https://github.com/InvisibleWrench/FlutterMidiCommand
+repository: https://github.com/InvisibleWrench/FlutterMidiCommand/tree/main/packages/flutter_midi_command_darwin
+issue_tracker: https://github.com/InvisibleWrench/FlutterMidiCommand/issues
+documentation: https://github.com/InvisibleWrench/FlutterMidiCommand/tree/main/packages/flutter_midi_command_darwin
+topics:
+  - midi
+  - flutter-plugin
+  - ios
+  - macos
+  - coremidi
 
 environment:
   sdk: ">=3.7.0 <4.0.0"
@@ -10,8 +19,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_midi_command_platform_interface:
-    path: ../flutter_midi_command_platform_interface
+  flutter_midi_command_platform_interface: ^1.0.0
 
 dev_dependencies:
   flutter_test:

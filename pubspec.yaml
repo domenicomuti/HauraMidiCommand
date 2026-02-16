@@ -1,30 +1,32 @@
 name: flutter_midi_command
 description: A Flutter plugin for sending and receiving MIDI messages between Flutter and physical and virtual MIDI devices.
-publish_to: none
 
 version: 1.0.0
 homepage: https://github.com/InvisibleWrench/FlutterMidiCommand
+repository: https://github.com/InvisibleWrench/FlutterMidiCommand
+issue_tracker: https://github.com/InvisibleWrench/FlutterMidiCommand/issues
+documentation: https://github.com/InvisibleWrench/FlutterMidiCommand#readme
+topics:
+  - midi
+  - flutter-plugin
+  - bluetooth
+  - webmidi
+  - music-tech
 
 environment:
   sdk: ">=3.7.0 <4.0.0"
-  flutter: ">=2.11.0"
+  flutter: ">=3.24.0"
 
 dependencies:
   flutter:
     sdk: flutter
   async: ^2.12.0
-  flutter_midi_command_platform_interface:
-    path: packages/flutter_midi_command_platform_interface
-  flutter_midi_command_linux:
-    path: packages/flutter_midi_command_linux
-  flutter_midi_command_windows:
-    path: packages/flutter_midi_command_windows
-  flutter_midi_command_web:
-    path: packages/flutter_midi_command_web
-  flutter_midi_command_android:
-    path: packages/flutter_midi_command_android
-  flutter_midi_command_darwin:
-    path: packages/flutter_midi_command_darwin
+  flutter_midi_command_platform_interface: ^1.0.0
+  flutter_midi_command_linux: ^1.0.0
+  flutter_midi_command_windows: ^1.0.0
+  flutter_midi_command_web: ^1.0.0
+  flutter_midi_command_android: ^1.0.0
+  flutter_midi_command_darwin: ^1.0.0
     
 dev_dependencies:
   flutter_test:

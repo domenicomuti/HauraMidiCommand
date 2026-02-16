@@ -1,3 +1,13 @@
+## 1.0.0
+- Restructured into a melos-managed federated monorepo.
+- Bumped federated subpackages to 1.0.0 for the major API transition.
+- Introduced shared BLE transport package (`flutter_midi_command_ble`) and optional BLE wiring via `configureBleTransport`.
+- Migrated host API contracts to generated Pigeon interfaces.
+- Added typed host models (`MidiDeviceType`, `MidiHostDevice`, `MidiPort`, `MidiPacket`) across platform bridges.
+- Added web implementation package (`flutter_midi_command_web`) using browser Web MIDI.
+- Added transport capabilities/policies and stronger async connection semantics (`connectToDevice` completes on connection).
+- Expanded test coverage across shared logic, platform interface, BLE transport, and web backend.
+
 ## 0.5.3
 Adds a runtime check to ensure MIDI is available on the android device before starting. See #125 for further details.
 Make plugin work with Flutter 3.27.0 and Android Studio Lady Bug. #127
@@ -238,4 +248,3 @@ Readme and formatting
 Initial Release.
 Functioning discovery and connection to MIDI devices on Android and iOS, as well as BLE MIDI devices on Android.
 Functioning sending and receiving of MIDI data
-

@@ -127,7 +127,7 @@ With BLE support enabled:
 ```yaml
 dependencies:
   flutter_midi_command: ^1.0.0
-  flutter_midi_command_ble: ^0.1.0
+  flutter_midi_command_ble: ^1.0.0
 ```
 
 ## Migration Guide (from older plugin versions)
@@ -139,7 +139,7 @@ If you previously relied on built-in BLE behavior, add and attach the BLE transp
 ```yaml
 dependencies:
   flutter_midi_command: ^1.0.0
-  flutter_midi_command_ble: ^0.1.0
+  flutter_midi_command_ble: ^1.0.0
 ```
 
 ```dart

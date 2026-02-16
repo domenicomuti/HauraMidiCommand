@@ -1,3 +1,8 @@
+## 1.0.0
+
+* Major release aligned with the federated monorepo architecture.
+* Updated to the 1.x platform interface and typed host models.
+
 ## 0.3.0
 
 * Updated device_manager package to 0.0.7, which includes the fix for Windows
