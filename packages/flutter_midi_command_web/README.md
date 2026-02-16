@@ -1,5 +1,7 @@
 # flutter_midi_command_web
 
+[![pub package](https://img.shields.io/pub/v/flutter_midi_command_web.svg)](https://pub.dev/packages/flutter_midi_command_web)
+
 Web implementation of `flutter_midi_command` backed by the browser Web MIDI API.
 
 ## What it supports

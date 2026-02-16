@@ -1,4 +1,11 @@
-# flutter_midi_command
+# Flutter MIDI Command
+
+[![CI](https://github.com/InvisibleWrench/FlutterMidiCommand/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/InvisibleWrench/FlutterMidiCommand/actions/workflows/ci.yml)
+[![pub package](https://img.shields.io/pub/v/flutter_midi_command.svg)](https://pub.dev/packages/flutter_midi_command)
+[![pub points](https://img.shields.io/pub/points/flutter_midi_command)](https://pub.dev/packages/flutter_midi_command/score)
+[![pub likes](https://img.shields.io/pub/likes/flutter_midi_command)](https://pub.dev/packages/flutter_midi_command/score)
+[![pub popularity](https://img.shields.io/pub/popularity/flutter_midi_command)](https://pub.dev/packages/flutter_midi_command/score)
+[![License](https://img.shields.io/github/license/InvisibleWrench/FlutterMidiCommand)](https://github.com/InvisibleWrench/FlutterMidiCommand/blob/main/LICENSE)
 
 A Flutter plugin for sending and receiving MIDI messages between Flutter and physical and virtual MIDI devices.
 

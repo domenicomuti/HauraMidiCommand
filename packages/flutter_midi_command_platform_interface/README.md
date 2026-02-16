@@ -1,5 +1,7 @@
 # flutter_midi_command_platform_interface
 
+[![pub package](https://img.shields.io/pub/v/flutter_midi_command_platform_interface.svg)](https://pub.dev/packages/flutter_midi_command_platform_interface)
+
 Shared platform contracts for the `flutter_midi_command` plugin family.
 
 ## Scope
