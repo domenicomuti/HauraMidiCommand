@@ -13,7 +13,7 @@ rootProject.allprojects {
 
 android {
     namespace = "com.invisiblewrench.fluttermidicommand"
-    compileSdk = 35
+    compileSdk = 36
 
     sourceSets {
         getByName("main").java.srcDirs("src/main/kotlin")

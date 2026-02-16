@@ -32,8 +32,7 @@ jobs:
       - run: dart pub global activate melos
       - run: melos bootstrap
       - name: Android native unit tests
-        run: ./gradlew :flutter_midi_command_android:testDebugUnitTest
-        working-directory: example/android
+        run: bash ./example/android/gradlew -p example/android :flutter_midi_command_android:testDebugUnitTest
       - run: melos run analyze
       - run: melos run test
       - run: melos run test:web:chrome
