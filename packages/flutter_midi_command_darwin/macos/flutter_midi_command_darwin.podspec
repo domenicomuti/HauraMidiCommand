@@ -1,13 +1,13 @@
 #
 # To learn more about a Podspec see http://guides.cocoapods.org/syntax/podspec.html.
-# Run `pod lib lint flutter_midi_command.podspec' to validate before publishing.
+# Run `pod lib lint flutter_midi_command_darwin.podspec' to validate before publishing.
 #
 Pod::Spec.new do |s|
-  s.name             = 'flutter_midi_command'
-  s.version          = '0.0.1'
-  s.summary          = 'A new flutter plugin project.'
+  s.name             = 'flutter_midi_command_darwin'
+  s.version          = '0.1.0'
+  s.summary          = 'Darwin serial MIDI wrapper for flutter_midi_command.'
   s.description      = <<-DESC
-A new flutter plugin project.
+Darwin serial MIDI wrapper for flutter_midi_command.
                        DESC
   s.homepage         = 'https://github.com/InvisibleWrench/FlutterMidiCommand'
   s.license          = { :file => '../LICENSE' }

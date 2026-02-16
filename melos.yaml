@@ -18,7 +18,7 @@ scripts:
   test:native:darwin:
     run: swiftc packages/flutter_midi_command_darwin/ios/Classes/MidiPacketParser.swift packages/flutter_midi_command_darwin/ios/Tests/midi_packet_parser_smoke.swift -o /tmp/midi_packet_parser_smoke && /tmp/midi_packet_parser_smoke
   build:example:android:
-    run: dart run melos exec --scope=flutter_midi_command_example -- "flutter build apk --debug"
+    run: dart run melos exec --scope=flutter_midi_command_example -- "flutter build apk --debug --target-platform android-arm64 --android-skip-build-dependency-validation"
   build:example:linux:
     run: dart run melos exec --scope=flutter_midi_command_example -- "flutter build linux --debug"
   build:example:ios:

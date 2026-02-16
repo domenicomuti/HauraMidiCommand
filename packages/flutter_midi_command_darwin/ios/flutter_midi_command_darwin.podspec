@@ -1,10 +1,10 @@
 #
 # To learn more about a Podspec see http://guides.cocoapods.org/syntax/podspec.html.
-# Run `pod lib lint flutter_midi_command.podspec' to validate before publishing.
+# Run `pod lib lint flutter_midi_command_darwin.podspec' to validate before publishing.
 #
 Pod::Spec.new do |s|
-  s.name             = 'flutter_midi_command'
-  s.version          = '0.4.2'
+  s.name             = 'flutter_midi_command_darwin'
+  s.version          = '0.1.0'
   s.summary          = 'A Flutter plugin for sending and receiving MIDI messages'
   s.description      = <<-DESC
   'A Flutter plugin for sending and receiving MIDI messages'
