@@ -33,6 +33,10 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_midi_command_platform_interface:
+    path: ../packages/flutter_midi_command_platform_interface
   flutter_lints: ^5.0.0
 
 # For information on the generic Dart part of this file, see the

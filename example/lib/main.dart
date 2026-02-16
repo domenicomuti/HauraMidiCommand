@@ -8,10 +8,24 @@ import 'package:flutter_midi_command/flutter_midi_command.dart';
 
 import 'controller.dart';
 
-void main() => runApp(const MyApp());
+void main() => runExampleApp();
+
+void runExampleApp({
+  bool enableBle = true,
+  MidiCommand? midiCommand,
+}) {
+  runApp(MyApp(enableBle: enableBle, midiCommand: midiCommand));
+}
 
 class MyApp extends StatefulWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({
+    super.key,
+    this.enableBle = true,
+    this.midiCommand,
+  });
+
+  final bool enableBle;
+  final MidiCommand? midiCommand;
 
   @override
   MyAppState createState() => MyAppState();
@@ -20,7 +34,7 @@ class MyApp extends StatefulWidget {
 class MyAppState extends State<MyApp> {
   StreamSubscription<String>? _setupSubscription;
   StreamSubscription<BluetoothState>? _bluetoothStateSubscription;
-  final MidiCommand _midiCommand = MidiCommand();
+  late final MidiCommand _midiCommand;
 
   bool _virtualDeviceActivated = false;
   bool _iOSNetworkSessionEnabled = false;
@@ -30,7 +44,18 @@ class MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    _midiCommand.configureBleTransport(UniversalBleMidiTransport());
+    _midiCommand = widget.midiCommand ?? MidiCommand();
+
+    if (widget.enableBle) {
+      _midiCommand.configureBleTransport(UniversalBleMidiTransport());
+    } else {
+      _midiCommand.configureBleTransport(null);
+      _midiCommand.configureTransportPolicy(
+        const MidiTransportPolicy(
+          excludedTransports: {MidiTransport.ble},
+        ),
+      );
+    }
 
     _setupSubscription = _midiCommand.onMidiSetupChanged?.listen((data) async {
       if (kDebugMode) {
@@ -272,7 +297,11 @@ class MyAppState extends State<MyApp> {
                       ),
                       trailing: Icon(_deviceIconForType(device.type)),
                       onLongPress: () {
-                        _midiCommand.stopScanningForBluetoothDevices();
+                        if (_midiCommand.isTransportEnabled(
+                          MidiTransport.ble,
+                        )) {
+                          _midiCommand.stopScanningForBluetoothDevices();
+                        }
                         Navigator.of(context)
                             .push(MaterialPageRoute<void>(
                           builder: (_) => ControllerPage(device),

@@ -1,7 +1,7 @@
 PODS:
   - file_picker (0.0.1):
     - FlutterMacOS
-  - flutter_midi_command_darwin (0.1.0):
+  - flutter_midi_command_darwin (1.0.0):
     - FlutterMacOS
   - FlutterMacOS (1.0.0)
   - universal_ble (0.0.1):
@@ -26,7 +26,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   file_picker: 7584aae6fa07a041af2b36a2655122d42f578c1a
-  flutter_midi_command_darwin: d30444b66aa6109fb6a2da669edbf526af8e4c87
+  flutter_midi_command_darwin: 1df1bed25c2953378a7d8e6bdce954c025c18aad
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
   universal_ble: ff19787898040d721109c6324472e5dd4bc86adc
 

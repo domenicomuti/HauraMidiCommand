@@ -58,10 +58,11 @@ jobs:
       - name: Install Linux build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev xvfb
       - run: dart pub global activate melos
       - run: melos bootstrap
       - run: melos run build:example:linux
+      - run: xvfb-run -a melos run test:example:integration:linux
 
   build_example_ios_macos:
     runs-on: macos-latest
@@ -80,6 +81,17 @@ jobs:
           /tmp/midi_packet_parser_smoke
       - run: melos run build:example:ios
       - run: melos run build:example:macos
+      - run: melos run test:example:integration:macos
+      - name: Boot iOS simulator
+        run: |
+          SIMULATOR_ID=$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ {print $2; exit}')
+          if [ -z "$SIMULATOR_ID" ]; then
+            echo "No iOS simulator found on runner."
+            exit 1
+          fi
+          xcrun simctl boot "$SIMULATOR_ID" || true
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+      - run: melos run test:example:integration:ios
 
   build_example_windows:
     runs-on: windows-latest
@@ -91,3 +103,33 @@ jobs:
       - run: dart pub global activate melos
       - run: melos bootstrap
       - run: melos run build:example:windows
+      - run: melos run test:example:integration:windows
+
+  example_smoke_android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+      - run: dart pub global activate melos
+      - run: melos bootstrap
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          script: melos run test:example:integration:android
+
+  example_smoke_web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+      - run: dart pub global activate melos
+      - run: melos bootstrap
+      - run: melos run test:example:integration:web
