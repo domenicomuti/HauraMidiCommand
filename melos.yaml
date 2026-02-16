@@ -39,5 +39,7 @@ scripts:
     run: dart run melos exec --scope=flutter_midi_command_example -- "flutter build macos --debug"
   build:example:windows:
     run: dart run melos exec --scope=flutter_midi_command_example -- "flutter build windows --debug"
+  build:example:web:
+    run: dart run melos exec --scope=flutter_midi_command_example -- "flutter build web --debug"
   format:
     run: dart run melos exec -- "dart format --set-exit-if-changed ."
