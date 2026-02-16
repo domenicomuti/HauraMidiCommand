@@ -9,6 +9,7 @@
 A Flutter plugin for sending and receiving MIDI messages between Flutter and physical and virtual MIDI devices.
 
 Wraps CoreMIDI/android.media.midi/ALSA/win32 in a thin Dart/Flutter layer.
+Includes a built-in typed MIDI parser/generator (`MidiMessageParser` and `MidiMessage.parse`); see [Message parser](#message-parser).
 Supports
 
 | Transports | iOS | macOS | Android | Linux | Windows | Web |

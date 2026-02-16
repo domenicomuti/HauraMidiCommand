@@ -6,6 +6,7 @@
 - Added typed host models (`MidiDeviceType`, `MidiHostDevice`, `MidiPort`, `MidiPacket`) across platform bridges.
 - Added web implementation package (`flutter_midi_command_web`) using browser Web MIDI.
 - Added transport capabilities/policies and stronger async connection semantics (`connectToDevice` completes on connection).
+- Added a typed MIDI parser/generator API (`MidiMessageParser` and `MidiMessage.parse`) with support for running status, realtime interleaving, SysEx, and NRPN/RPN message flows.
 - Expanded test coverage across shared logic, platform interface, BLE transport, and web backend.
 
 ## 0.5.3
