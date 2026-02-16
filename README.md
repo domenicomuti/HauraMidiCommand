@@ -2,10 +2,10 @@
 
 A Flutter plugin for sending and receiving MIDI messages between Flutter and physical and virtual MIDI devices.
 
-Wraps CoreMIDI/android.media.midi/ALSA/win32 in a thin dart/flutter layer.
+Wraps CoreMIDI/android.media.midi/ALSA/win32 in a thin Dart/Flutter layer.
 Supports
 
-| Transports | iOS | macos | Android | Linux | Windows | Web |
+| Transports | iOS | macOS | Android | Linux | Windows | Web |
 |---|---|---|---|---|---|---|
 | USB | &check; | &check; | &check; | &check; | &check; | &check;* |
 | BLE | &check; | &check; | &check; | &cross; | &check; | &cross;** |
@@ -13,7 +13,7 @@ Supports
 | Network Session | &check; | &check; | &cross; | &cross; | &cross; | &cross; |
 
 \* via browser Web MIDI API support.
-\** BLE MIDI on web is not handled by `flutter_midi_command_ble`; web MIDI exposure depends on browser/OS.
+\** BLE MIDI on Web is not handled by `flutter_midi_command_ble`; Web MIDI exposure depends on browser/OS.
 
 
 ## To install
@@ -21,11 +21,14 @@ Supports
 - Make sure your project is created with Kotlin and Swift support.
 - Add `flutter_midi_command` to your `pubspec.yaml`.
 - Add `flutter_midi_command_ble` only if you want BLE MIDI support.
-- In ios/Podfile uncomment and change the platform to 11.0 `platform :ios, '11.0'`
-- If BLE is enabled on iOS, add `NSBluetoothAlwaysUsageDescription` (and related bluetooth/location keys as required by your BLE flow) to `Info.plist`.
+- Minimum platform versions in this repo:
+  - iOS: plugin package minimum is `11.0` (`packages/flutter_midi_command_darwin/ios/flutter_midi_command_darwin.podspec`), while the example app currently targets `13.0` (`example/ios/Podfile`).
+  - macOS: plugin package minimum is `10.13` (`packages/flutter_midi_command_darwin/macos/flutter_midi_command_darwin.podspec`), while the example app currently targets `10.15` (`example/macos/Podfile`).
+  - Android: plugin package minimum is `minSdkVersion(21)` (`packages/flutter_midi_command_android/android/build.gradle.kts`), while the example app currently uses `minSdkVersion(24)` (`example/android/app/build.gradle.kts`).
+- If BLE is enabled on iOS, add `NSBluetoothAlwaysUsageDescription` (and related Bluetooth/location keys as required by your BLE flow) to `Info.plist`.
 - If using network MIDI on iOS, add `NSLocalNetworkUsageDescription`.
 - On Linux, make sure ALSA is installed.
-- On web, use HTTPS and a browser with Web MIDI enabled (for example Chrome/Edge).
+- On Web, use HTTPS and a browser with Web MIDI enabled (for example Chrome/Edge).
 
 ## Getting Started
 

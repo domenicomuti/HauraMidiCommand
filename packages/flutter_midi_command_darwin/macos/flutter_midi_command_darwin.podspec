@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'flutter_midi_command_darwin'
-  s.version          = '0.1.0'
+  s.version          = '1.0.0'
   s.summary          = 'Darwin serial MIDI wrapper for flutter_midi_command.'
   s.description      = <<-DESC
 Darwin serial MIDI wrapper for flutter_midi_command.
