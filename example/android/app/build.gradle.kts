@@ -19,6 +19,7 @@ val flutterVersionName = localProperties.getProperty("flutter.versionName") ?: "
 
 android {
   compileSdk = 36
+  ndkVersion = "28.2.13676358"
 
   namespace = "com.invisiblewrench.fluttermidicommand_example"
   sourceSets { getByName("main").java.srcDirs("src/main/kotlin") }
