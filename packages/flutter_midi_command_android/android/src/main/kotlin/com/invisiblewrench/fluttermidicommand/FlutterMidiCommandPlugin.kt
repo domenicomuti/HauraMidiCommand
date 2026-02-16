@@ -139,6 +139,9 @@ class FlutterMidiCommandPlugin : FlutterPlugin, ActivityAware, MidiHostApi {
 
     val deviceId = device.id ?: throw FlutterError("ERROR", "Missing device id", null)
     val deviceType = device.type ?: MidiDeviceType.UNKNOWN
+    if (connectedDevices.containsKey(deviceId)) {
+      return
+    }
 
     val target = midiManager.devices.firstOrNull { info -> Device.deviceIdForInfo(info) == deviceId }
       ?: throw FlutterError("ERROR", "Device not found", null)
