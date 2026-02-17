@@ -9,3 +9,4 @@ build/
 local.properties
 .idea/
 *.iml
+packages/flutter_midi_command_darwin/ios/.build/
