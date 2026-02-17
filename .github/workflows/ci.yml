@@ -117,6 +117,9 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -no-snapshot-save
           script: melos run test:example:integration:android
+        env:
+          ANDROID_DEVICE_ID: emulator-5554
+          ANDROID_SMOKE_MAX_ATTEMPTS: "3"
 
   example_linux:
     runs-on: ubuntu-latest

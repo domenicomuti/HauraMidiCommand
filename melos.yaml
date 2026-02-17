@@ -22,7 +22,7 @@ scripts:
   test:native:windows:
     run: dart run melos exec --scope=flutter_midi_command_windows -- "flutter test"
   test:example:integration:android:
-    run: dart run melos exec --scope=flutter_midi_command_example -- "flutter test integration_test/smoke_test.dart -d emulator-5554"
+    run: dart run melos exec --scope=flutter_midi_command_example -- "bash tool/run_android_smoke_test.sh"
   test:example:integration:ios:
     run: dart run melos exec --scope=flutter_midi_command_example -- "bash tool/run_ios_smoke_test.sh"
   test:example:integration:linux:
