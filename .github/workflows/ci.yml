@@ -155,6 +155,8 @@ jobs:
         run: melos run test:example:integration:macos
       - name: Run smoke test (iOS simulator)
         run: melos run test:example:integration:ios
+        env:
+          IOS_SMOKE_MAX_ATTEMPTS: "3"
 
   example_windows:
     runs-on: windows-latest
