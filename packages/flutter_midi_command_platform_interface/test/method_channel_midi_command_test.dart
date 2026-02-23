@@ -316,4 +316,21 @@ void main() {
     expect(host.teardownCalls, 1);
     expect(connected.connectionState, MidiConnectionState.disconnected);
   });
+
+  test(
+    'constructor throws root-isolate error for background message handler setup failures',
+    () {
+      expect(
+        () => MethodChannelMidiCommand(
+          hostApi: _FakeHostApi(),
+          flutterApiSetUp: (_) {
+            throw UnsupportedError(
+              'Background isolates do not support setMessageHandler().',
+            );
+          },
+        ),
+        throwsA(isA<MidiCommandRootIsolateRequiredError>()),
+      );
+    },
+  );
 }

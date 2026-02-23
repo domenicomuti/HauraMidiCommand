@@ -3,20 +3,59 @@ import 'dart:typed_data';
 import 'flutter_midi_command_platform_interface.dart';
 import 'src/pigeon/midi_api.g.dart' as pigeon;
 
+typedef MidiFlutterApiSetUp = void Function(pigeon.MidiFlutterApi? api);
+
+/// Thrown when [MethodChannelMidiCommand] is initialized off the root isolate.
+class MidiCommandRootIsolateRequiredError extends UnsupportedError {
+  MidiCommandRootIsolateRequiredError()
+    : super(
+        'MidiCommand must be initialized on the root isolate. '
+        'Background isolates cannot register platform callbacks via '
+        'setMessageHandler(). Initialize MidiCommand on the root isolate and '
+        'forward MIDI events/commands to worker isolates via SendPort.',
+      );
+}
+
 /// A [MidiCommandPlatform] implementation backed by generated Pigeon APIs.
 class MethodChannelMidiCommand extends MidiCommandPlatform
     implements pigeon.MidiFlutterApi {
-  MethodChannelMidiCommand({pigeon.MidiHostApi? hostApi})
-    : _hostApi = hostApi ?? pigeon.MidiHostApi() {
-    pigeon.MidiFlutterApi.setUp(this);
+  MethodChannelMidiCommand({
+    pigeon.MidiHostApi? hostApi,
+    MidiFlutterApiSetUp? flutterApiSetUp,
+  }) : _hostApi = hostApi ?? pigeon.MidiHostApi(),
+       _flutterApiSetUp = flutterApiSetUp ?? pigeon.MidiFlutterApi.setUp {
+    _registerFlutterApi();
   }
 
   final pigeon.MidiHostApi _hostApi;
+  final MidiFlutterApiSetUp _flutterApiSetUp;
   final StreamController<MidiPacket> _rxStreamController =
       StreamController<MidiPacket>.broadcast();
   final StreamController<String> _setupStreamController =
       StreamController<String>.broadcast();
   final Map<String, MidiDevice> _deviceCache = <String, MidiDevice>{};
+
+  void _registerFlutterApi() {
+    try {
+      _flutterApiSetUp(this);
+    } on UnsupportedError catch (error, stackTrace) {
+      if (_isBackgroundIsolateMessageHandlerError(error)) {
+        Error.throwWithStackTrace(
+          MidiCommandRootIsolateRequiredError(),
+          stackTrace,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  bool _isBackgroundIsolateMessageHandlerError(UnsupportedError error) {
+    final message = error.message ?? '';
+    return message.contains(
+          'Background isolates do not support setMessageHandler()',
+        ) ||
+        message.contains('setMessageHandler');
+  }
 
   /// Returns a list of found MIDI devices.
   @override
