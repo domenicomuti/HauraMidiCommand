@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_midi_command/flutter_midi_command.dart';
+import 'package:flutter_midi_command/flutter_midi_command_messages.dart';
 import 'package:flutter_midi_command_platform_interface/flutter_midi_command_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -260,27 +261,66 @@ void main() {
     );
   });
 
-  test('onMidiDataReceived merges platform and BLE streams', () async {
-    final platform = _FakePlatform();
-    final ble = _FakeBleTransport();
-    MidiCommand.setPlatformOverride(platform);
-    final midi = MidiCommand(bleTransport: ble);
+  test(
+    'onMidiDataReceived returns typed events with source metadata',
+    () async {
+      final platform = _FakePlatform();
+      final ble = _FakeBleTransport();
+      MidiCommand.setPlatformOverride(platform);
+      final midi = MidiCommand(bleTransport: ble);
 
-    final received = <MidiPacket>[];
+      final received = <MidiDataReceivedEvent>[];
+      final sub = midi.onMidiDataReceived!.listen(received.add);
+
+      platform.emitPacket(
+        MidiPacket(
+          Uint8List.fromList([0x90, 0x3C, 0x64]),
+          123,
+          MidiDevice('serial-1', 'Serial', MidiDeviceType.serial, true),
+        ),
+      );
+      ble.emitPacket(
+        MidiPacket(
+          Uint8List.fromList([0x80, 0x3C, 0x00]),
+          456,
+          MidiDevice('ble-1', 'BLE', MidiDeviceType.ble, true),
+        ),
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      await sub.cancel();
+
+      expect(received.length, 2);
+
+      final serialEvent = received.firstWhere(
+        (event) => event.transport == MidiTransport.serial,
+      );
+      expect(serialEvent.device.id, 'serial-1');
+      expect(serialEvent.timestamp, 123);
+      expect(serialEvent.message, isA<NoteOnMessage>());
+
+      final bleEvent = received.firstWhere(
+        (event) => event.transport == MidiTransport.ble,
+      );
+      expect(bleEvent.device.id, 'ble-1');
+      expect(bleEvent.timestamp, 456);
+      expect(bleEvent.message, isA<NoteOffMessage>());
+    },
+  );
+
+  test('onMidiDataReceived emits one event per parsed MIDI message', () async {
+    final platform = _FakePlatform();
+    MidiCommand.setPlatformOverride(platform);
+    final midi = MidiCommand();
+
+    final received = <MidiDataReceivedEvent>[];
     final sub = midi.onMidiDataReceived!.listen(received.add);
 
     platform.emitPacket(
       MidiPacket(
-        Uint8List.fromList([1]),
-        0,
+        Uint8List.fromList([0x90, 0x3C, 0x64, 0x80, 0x3C, 0x00]),
+        99,
         MidiDevice('serial-1', 'Serial', MidiDeviceType.serial, true),
-      ),
-    );
-    ble.emitPacket(
-      MidiPacket(
-        Uint8List.fromList([2]),
-        0,
-        MidiDevice('ble-1', 'BLE', MidiDeviceType.ble, true),
       ),
     );
 
@@ -288,6 +328,10 @@ void main() {
     await sub.cancel();
 
     expect(received.length, 2);
+    expect(received[0].message, isA<NoteOnMessage>());
+    expect(received[1].message, isA<NoteOffMessage>());
+    expect(received[0].timestamp, 99);
+    expect(received[1].timestamp, 99);
   });
 
   test('onMidiSetupChanged merges platform and BLE streams', () async {

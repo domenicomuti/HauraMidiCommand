@@ -54,10 +54,8 @@ class MidiSessionController {
 
   final bool enableBle;
   final MidiCommand midi = MidiCommand();
-  StreamSubscription<MidiPacket>? _rxSub;
+  StreamSubscription<MidiDataReceivedEvent>? _rxSub;
   StreamSubscription<String>? _setupSub;
-  final Map<String, MidiMessageParser> _parserByDeviceId =
-      <String, MidiMessageParser>{};
   MidiDevice? selectedDevice;
 
   Future<void> initialize() async {
@@ -82,15 +80,13 @@ class MidiSessionController {
       }
     });
 
-    _rxSub = midi.onMidiDataReceived?.listen((packet) {
-      final parser = _parserByDeviceId.putIfAbsent(
-        packet.device.id,
-        MidiMessageParser.new,
+    _rxSub = midi.onMidiDataReceived?.listen((event) {
+      _handleIncomingMessage(
+        event.device,
+        event.transport,
+        event.timestamp,
+        event.message,
       );
-      final messages = parser.parse(packet.data, flushPendingNrpn: false);
-      for (final message in messages) {
-        _handleIncomingMessage(packet.device, message);
-      }
     });
   }
 
@@ -119,7 +115,12 @@ class MidiSessionController {
     });
   }
 
-  void _handleIncomingMessage(MidiDevice source, MidiMessage message) {
+  void _handleIncomingMessage(
+    MidiDevice source,
+    MidiTransport transport,
+    int timestamp,
+    MidiMessage message,
+  ) {
     if (message is NoteOnMessage) {
       // Example: route to synth engine / UI.
       return;
@@ -141,10 +142,6 @@ class MidiSessionController {
     if (enableBle) {
       midi.stopScanningForBluetoothDevices();
     }
-    for (final parser in _parserByDeviceId.values) {
-      parser.reset();
-    }
-    _parserByDeviceId.clear();
     midi.dispose();
   }
 }
@@ -156,7 +153,8 @@ See `example/` for a complete app with UI and transport toggles.
 
 ## Message parser
 
-Use `MidiMessageParser` (or `MidiMessage.parse`) to turn raw incoming bytes into typed MIDI events.
+`onMidiDataReceived` already emits typed MIDI messages.
+Use `MidiMessageParser` (or `MidiMessage.parse`) when you need to parse raw bytes from `onMidiPacketReceived` or from custom byte streams.
 Keep one parser instance per input stream/device to preserve running-status and partial-message state correctly.
 
 - Supports running status.

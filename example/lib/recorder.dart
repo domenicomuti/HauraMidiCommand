@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'dart:io';
 
@@ -7,7 +6,6 @@ import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 
 class MidiRecorder {
-
   factory MidiRecorder() {
     _instance ??= MidiRecorder._();
     return _instance!;
@@ -21,15 +19,13 @@ class MidiRecorder {
 
   bool get recording => _recording;
 
-  final List<MidiPacket> _messages = [];
+  final List<MidiDataReceivedEvent> _messages = [];
 
-  StreamSubscription<MidiPacket>? _midiSub;
+  StreamSubscription<MidiDataReceivedEvent>? _midiSub;
 
   startRecording() {
     _recording = true;
-    _midiSub = MidiCommand().onMidiDataReceived?.listen((packet) {
-      _messages.add(packet);
-    });
+    _midiSub = MidiCommand().onMidiDataReceived?.listen(_messages.add);
   }
 
   stopRecording() {
@@ -37,9 +33,15 @@ class MidiRecorder {
     _midiSub?.cancel();
   }
 
-
   exportRecording() async {
-    var rows = _messages.map((e) => [e.timestamp, ...e.data.map((e) => e.toString())]).toList();
+    var rows = _messages
+        .map(
+          (event) => [
+            event.timestamp,
+            ...event.message.data.map((byte) => byte.toString()),
+          ],
+        )
+        .toList();
 
     var csv = const ListToCsvConverter().convert(rows);
 
@@ -63,4 +65,3 @@ class MidiRecorder {
     _messages.clear();
   }
 }
-

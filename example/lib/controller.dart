@@ -44,9 +44,8 @@ class MidiControlsState extends State<MidiControls> {
   var _nrpnCtrl = 0;
 
   // StreamSubscription<String> _setupSubscription;
-  StreamSubscription<MidiPacket>? _rxSubscription;
+  StreamSubscription<MidiDataReceivedEvent>? _rxSubscription;
   final MidiCommand _midiCommand = MidiCommand();
-  final MidiMessageParser _messageParser = MidiMessageParser();
 
   final MidiRecorder _recorder = MidiRecorder();
 
@@ -55,7 +54,9 @@ class MidiControlsState extends State<MidiControls> {
     if (kDebugMode) {
       print('init controller');
     }
-    _rxSubscription = _midiCommand.onMidiDataReceived?.listen(_handlePacket);
+    _rxSubscription = _midiCommand.onMidiDataReceived?.listen(
+      _handleMessageEvent,
+    );
 
     super.initState();
   }
@@ -64,19 +65,18 @@ class MidiControlsState extends State<MidiControls> {
   void dispose() {
     // _setupSubscription?.cancel();
     _rxSubscription?.cancel();
-    _messageParser.reset();
     super.dispose();
   }
 
-  void _handlePacket(MidiPacket packet) {
-    if (packet.device.id != widget.device.id) {
+  void _handleMessageEvent(MidiDataReceivedEvent event) {
+    if (event.device.id != widget.device.id) {
       return;
     }
 
-    final parsedMessages = _messageParser.parse(
-      packet.data,
-      flushPendingNrpn: false,
-    );
+    final message = event.message;
+    if (message is ClockMessage || message is SenseMessage) {
+      return;
+    }
 
     var nextCcValue = _ccValue;
     var nextPcValue = _pcValue;
@@ -85,74 +85,53 @@ class MidiControlsState extends State<MidiControls> {
     var nextNrpnCtrl = _nrpnCtrl;
     var hasChanges = false;
 
-    for (final message in parsedMessages) {
-      if (message is ClockMessage || message is SenseMessage) {
-        continue;
-      }
-
-      if (message is CCMessage) {
-        if (message.channel == _channel && message.controller == _controller) {
-          if (nextCcValue != message.value) {
-            nextCcValue = message.value;
-            hasChanges = true;
-          }
-        }
-        continue;
-      }
-
-      if (message is PCMessage) {
-        if (message.channel == _channel && nextPcValue != message.program) {
-          nextPcValue = message.program;
+    if (message is CCMessage) {
+      if (message.channel == _channel && message.controller == _controller) {
+        if (nextCcValue != message.value) {
+          nextCcValue = message.value;
           hasChanges = true;
         }
-        continue;
+      }
+    } else if (message is PCMessage) {
+      if (message.channel == _channel && nextPcValue != message.program) {
+        nextPcValue = message.program;
+        hasChanges = true;
+      }
+    } else if (message is PitchBendMessage) {
+      if (message.channel == _channel && nextPitchValue != message.bend) {
+        nextPitchValue = message.bend;
+        hasChanges = true;
+      }
+    } else if (message is NRPN4Message) {
+      if (message.channel == _channel &&
+          (nextNrpnCtrl != message.parameter ||
+              nextNrpnValue != message.value)) {
+        nextNrpnCtrl = message.parameter;
+        nextNrpnValue = message.value;
+        hasChanges = true;
+      }
+    } else if (message is NRPN3Message) {
+      if (message.channel == _channel &&
+          (nextNrpnCtrl != message.parameter ||
+              nextNrpnValue != message.value)) {
+        nextNrpnCtrl = message.parameter;
+        nextNrpnValue = message.value;
+        hasChanges = true;
+      }
+    } else if (message is NRPNHexMessage) {
+      if (message.channel != _channel) {
+        return;
       }
 
-      if (message is PitchBendMessage) {
-        if (message.channel == _channel && nextPitchValue != message.bend) {
-          nextPitchValue = message.bend;
-          hasChanges = true;
-        }
-        continue;
-      }
-
-      if (message is NRPN4Message) {
-        if (message.channel == _channel &&
-            (nextNrpnCtrl != message.parameter ||
-                nextNrpnValue != message.value)) {
-          nextNrpnCtrl = message.parameter;
-          nextNrpnValue = message.value;
-          hasChanges = true;
-        }
-        continue;
-      }
-
-      if (message is NRPN3Message) {
-        if (message.channel == _channel &&
-            (nextNrpnCtrl != message.parameter ||
-                nextNrpnValue != message.value)) {
-          nextNrpnCtrl = message.parameter;
-          nextNrpnValue = message.value;
-          hasChanges = true;
-        }
-        continue;
-      }
-
-      if (message is NRPNHexMessage) {
-        if (message.channel != _channel) {
-          continue;
-        }
-
-        final parameter = ((message.parameterMSB & 0x7F) << 7) |
-            (message.parameterLSB & 0x7F);
-        final value = message.valueLSB >= 0
-            ? ((message.valueMSB & 0x7F) << 7) | (message.valueLSB & 0x7F)
-            : (message.valueMSB & 0x7F);
-        if (nextNrpnCtrl != parameter || nextNrpnValue != value) {
-          nextNrpnCtrl = parameter;
-          nextNrpnValue = value;
-          hasChanges = true;
-        }
+      final parameter =
+          ((message.parameterMSB & 0x7F) << 7) | (message.parameterLSB & 0x7F);
+      final value = message.valueLSB >= 0
+          ? ((message.valueMSB & 0x7F) << 7) | (message.valueLSB & 0x7F)
+          : (message.valueMSB & 0x7F);
+      if (nextNrpnCtrl != parameter || nextNrpnValue != value) {
+        nextNrpnCtrl = parameter;
+        nextNrpnValue = value;
+        hasChanges = true;
       }
     }
 

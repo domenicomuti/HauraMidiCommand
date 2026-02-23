@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:async/async.dart';
+import 'package:flutter_midi_command/flutter_midi_command_messages.dart';
 import 'package:flutter_midi_command_platform_interface/flutter_midi_command_platform_interface.dart';
 import 'package:flutter_midi_command/src/midi_transports.dart';
 
@@ -22,6 +23,20 @@ enum BluetoothState {
 }
 
 enum _MidiDeviceRoute { platform, bleTransport }
+
+class MidiDataReceivedEvent {
+  const MidiDataReceivedEvent({
+    required this.message,
+    required this.device,
+    required this.transport,
+    required this.timestamp,
+  });
+
+  final MidiMessage message;
+  final MidiDevice device;
+  final MidiTransport transport;
+  final int timestamp;
+}
 
 class MidiCommand {
   static const Set<MidiTransport> supportedTransports = {
@@ -49,6 +64,10 @@ class MidiCommand {
       Expando<_MidiDeviceRoute>('midi_device_route');
   final Map<String, _MidiDeviceRoute> _deviceRouteById =
       <String, _MidiDeviceRoute>{};
+  final Map<String, MidiMessageParser> _messageParsersBySource =
+      <String, MidiMessageParser>{};
+  Expando<MidiMessageParser> _messageParsersByAnonymousDevice =
+      Expando<MidiMessageParser>('midi_message_parser');
 
   Set<MidiTransport> get enabledTransports =>
       _transportPolicy.resolveEnabledTransports(supportedTransports);
@@ -76,6 +95,7 @@ class MidiCommand {
     _bluetoothIsStarted = false;
     _bluetoothState = BluetoothState.unknown;
     _deviceRouteById.clear();
+    _resetMessageParsers();
   }
 
   bool isTransportEnabled(MidiTransport transport) =>
@@ -109,6 +129,7 @@ class MidiCommand {
     _bluetoothStartFuture = null;
     _bluetoothState = BluetoothState.unknown;
     _deviceRouteById.clear();
+    _resetMessageParsers();
     if (identical(_instance, this)) {
       _instance = null;
     }
@@ -320,6 +341,7 @@ class MidiCommand {
     _platform.teardown();
     _bleTransport?.teardown();
     _deviceRouteById.clear();
+    _resetMessageParsers();
   }
 
   /// Sends data to the currently connected device
@@ -349,10 +371,41 @@ class MidiCommand {
     _txStreamCtrl.add(data);
   }
 
-  /// Stream firing events whenever a midi package is received
+  /// Stream firing events whenever a typed MIDI message is received.
   ///
-  /// The event contains the raw bytes contained in the MIDI package
-  Stream<MidiPacket>? get onMidiDataReceived {
+  /// Each event contains the parsed [MidiMessage], source [MidiDevice],
+  /// [MidiTransport], and packet timestamp.
+  Stream<MidiDataReceivedEvent>? get onMidiDataReceived {
+    final streams = <Stream<MidiDataReceivedEvent>>[];
+    if (_platform.onMidiDataReceived != null) {
+      streams.add(
+        _mapPacketsToTypedEvents(
+          _platform.onMidiDataReceived!,
+          fallbackTransport: MidiTransport.serial,
+        ),
+      );
+    }
+    if (_bleTransport != null && isTransportEnabled(MidiTransport.ble)) {
+      streams.add(
+        _mapPacketsToTypedEvents(
+          _bleTransport!.onMidiDataReceived,
+          fallbackTransport: MidiTransport.ble,
+        ),
+      );
+    }
+    if (streams.isEmpty) {
+      return null;
+    }
+    if (streams.length == 1) {
+      return streams.first;
+    }
+    return StreamGroup.merge(streams).asBroadcastStream();
+  }
+
+  /// Stream firing events whenever a raw MIDI packet is received.
+  ///
+  /// Prefer [onMidiDataReceived] for parsed message events.
+  Stream<MidiPacket>? get onMidiPacketReceived {
     final streams = <Stream<MidiPacket>>[];
     if (_platform.onMidiDataReceived != null) {
       streams.add(_platform.onMidiDataReceived!);
@@ -500,5 +553,80 @@ class MidiCommand {
     }
 
     return _MidiDeviceRoute.platform;
+  }
+
+  Stream<MidiDataReceivedEvent> _mapPacketsToTypedEvents(
+    Stream<MidiPacket> packets, {
+    required MidiTransport fallbackTransport,
+  }) {
+    return packets.asyncExpand((packet) {
+      final transport = _transportForPacket(
+        packet,
+        fallbackTransport: fallbackTransport,
+      );
+      final parser = _parserForPacket(packet, transport);
+      final parsedMessages = parser.parse(packet.data, flushPendingNrpn: false);
+      if (parsedMessages.isEmpty) {
+        return const Stream<MidiDataReceivedEvent>.empty();
+      }
+      return Stream<MidiDataReceivedEvent>.fromIterable(
+        parsedMessages.map(
+          (message) => MidiDataReceivedEvent(
+            message: message,
+            device: packet.device,
+            transport: transport,
+            timestamp: packet.timestamp,
+          ),
+        ),
+      );
+    });
+  }
+
+  MidiMessageParser _parserForPacket(
+    MidiPacket packet,
+    MidiTransport transport,
+  ) {
+    if (packet.device.id.isNotEmpty) {
+      final key = '${transport.name}:${packet.device.id}';
+      return _messageParsersBySource.putIfAbsent(key, MidiMessageParser.new);
+    }
+
+    final existing = _messageParsersByAnonymousDevice[packet.device];
+    if (existing != null) {
+      return existing;
+    }
+
+    final parser = MidiMessageParser();
+    _messageParsersByAnonymousDevice[packet.device] = parser;
+    return parser;
+  }
+
+  MidiTransport _transportForPacket(
+    MidiPacket packet, {
+    required MidiTransport fallbackTransport,
+  }) {
+    switch (packet.device.type) {
+      case MidiDeviceType.ble:
+        return MidiTransport.ble;
+      case MidiDeviceType.network:
+        return MidiTransport.network;
+      case MidiDeviceType.virtual:
+      case MidiDeviceType.ownVirtual:
+        return MidiTransport.virtualDevice;
+      case MidiDeviceType.serial:
+        return MidiTransport.serial;
+      case MidiDeviceType.unknown:
+        return fallbackTransport;
+    }
+  }
+
+  void _resetMessageParsers() {
+    for (final parser in _messageParsersBySource.values) {
+      parser.reset();
+    }
+    _messageParsersBySource.clear();
+    _messageParsersByAnonymousDevice = Expando<MidiMessageParser>(
+      'midi_message_parser',
+    );
   }
 }
