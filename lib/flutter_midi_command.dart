@@ -6,13 +6,9 @@ import 'package:flutter_midi_command_platform_interface/flutter_midi_command_pla
 import 'package:flutter_midi_command/src/midi_transports.dart';
 
 export 'package:flutter_midi_command_platform_interface/flutter_midi_command_platform_interface.dart'
-    show
-        MidiConnectionState,
-        MidiDevice,
-        MidiDeviceType,
-        MidiDeviceTypeWire,
-        MidiPacket,
-        MidiPort;
+    show MidiDevice, MidiDeviceTypeWire, MidiPacket, MidiPort;
+export 'package:flutter_midi_command_platform_interface/midi_device.dart'
+    show MidiConnectionState, MidiDeviceType;
 export 'src/midi_transports.dart';
 
 enum BluetoothState {
