@@ -74,7 +74,8 @@
   if (device.connected) {
     device.setConnectionState(MidiConnectionState.disconnecting);
   }
-  if (device.type == MidiDeviceType.ble) {
+  final route = _resolveDeviceRoute(device);
+  if (route == _MidiDeviceRoute.bleTransport) {
     _requireTransport(MidiTransport.ble, &#39;disconnectDevice&#39;);
     _requireBleTransport(&#39;disconnectDevice&#39;);
     _bleTransport!.disconnectDevice(device);

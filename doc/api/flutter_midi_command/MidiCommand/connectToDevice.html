@@ -71,17 +71,15 @@
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; connectToDevice(
-  MidiDevice device, {
-  Duration? awaitConnectionTimeout = const Duration(seconds: 10),
-}) async {
+  <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; connectToDevice(MidiDevice device, {Duration? awaitConnectionTimeout = const Duration(seconds: 10)}) async {
   if (!device.connected) {
     device.setConnectionState(MidiConnectionState.connecting);
   }
   final connectionEstablished = _awaitConnectedOrFailed(device);
 
   try {
-    if (device.type == MidiDeviceType.ble) {
+    final route = _resolveDeviceRoute(device);
+    if (route == _MidiDeviceRoute.bleTransport) {
       _requireTransport(MidiTransport.ble, &#39;connectToDevice&#39;);
       _requireBleTransport(&#39;connectToDevice&#39;);
       await _bleTransport!.connectToDevice(device);

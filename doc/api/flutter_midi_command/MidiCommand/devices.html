@@ -75,11 +75,22 @@
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;List&lt;MidiDevice&gt;?&gt; get devices async {
   final devices = &lt;MidiDevice&gt;[];
+  _deviceRouteById.clear();
+
   final platformDevices = await _platform.devices ?? &lt;MidiDevice&gt;[];
-  devices.addAll(platformDevices);
-  if (_bleTransport != null &amp;&amp; isTransportEnabled(MidiTransport.ble)) {
-    devices.addAll(await _bleTransport!.devices);
+  for (final device in platformDevices) {
+    _rememberDeviceRoute(device, _MidiDeviceRoute.platform);
   }
+  devices.addAll(platformDevices);
+
+  if (_bleTransport != null &amp;&amp; isTransportEnabled(MidiTransport.ble)) {
+    final bleDevices = await _bleTransport!.devices;
+    for (final device in bleDevices) {
+      _rememberDeviceRoute(device, _MidiDeviceRoute.bleTransport);
+    }
+    devices.addAll(bleDevices);
+  }
+
   return devices;
 }</code></pre>
 </section>

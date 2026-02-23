@@ -76,6 +76,8 @@
   _bluetoothIsStarted = false;
   _bluetoothStartFuture = null;
   _bluetoothState = BluetoothState.unknown;
+  _deviceRouteById.clear();
+  _resetMessageParsers();
   if (identical(_instance, this)) {
     _instance = null;
   }

@@ -161,12 +161,12 @@
 
         <dt id="onMidiDataReceived" class="property">
   <span class="name"><a href="../flutter_midi_command/MidiCommand/onMidiDataReceived.html">onMidiDataReceived</a></span>
-  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Stream-class.html">Stream</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flutter_midi_command/MidiPacket-class.html">MidiPacket</a></span>&gt;</span>?</span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Stream-class.html">Stream</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flutter_midi_command/MidiDataReceivedEvent-class.html">MidiDataReceivedEvent</a></span>&gt;</span>?</span>
   
 
 </dt>
 <dd>
-  Stream firing events whenever a midi package is received
+  Stream firing events whenever a typed MIDI message is received.
   <div class="features"><span class="feature">no setter</span></div>
 
 </dd>
@@ -179,6 +179,18 @@
 </dt>
 <dd>
   Stream firing events whenever a midi package is sent
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="onMidiPacketReceived" class="property">
+  <span class="name"><a href="../flutter_midi_command/MidiCommand/onMidiPacketReceived.html">onMidiPacketReceived</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Stream-class.html">Stream</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flutter_midi_command/MidiPacket-class.html">MidiPacket</a></span>&gt;</span>?</span>
+  
+
+</dt>
+<dd>
+  Stream firing events whenever a raw MIDI packet is received.
   <div class="features"><span class="feature">no setter</span></div>
 
 </dd>
