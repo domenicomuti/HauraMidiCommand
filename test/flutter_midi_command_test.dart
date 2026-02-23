@@ -293,7 +293,7 @@ void main() {
       expect(received.length, 2);
 
       final serialEvent = received.firstWhere(
-        (event) => event.transport == MidiTransport.serial,
+        (event) => event.transport == MidiTransport.native,
       );
       expect(serialEvent.device.id, 'serial-1');
       expect(serialEvent.timestamp, 123);

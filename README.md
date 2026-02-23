@@ -46,7 +46,7 @@ import 'dart:async';
 
 import 'package:flutter_midi_command/flutter_midi_command.dart';
 import 'package:flutter_midi_command/flutter_midi_command_messages.dart';
-// Optional: remove this import and BLE setup if your app is serial-only.
+// Optional: remove this import and BLE setup if your app is native-only.
 import 'package:flutter_midi_command_ble/flutter_midi_command_ble.dart';
 
 class MidiSessionController {
@@ -203,7 +203,7 @@ final messages = MidiMessage.parse(packet.data);
 
 ### Dependency examples
 
-With serial/native transports only:
+With native transports only:
 
 ```yaml
 dependencies:
@@ -289,8 +289,8 @@ This repository is now managed as a melos monorepo.
 
 - `flutter_midi_command` (this package): public API and transport policies
 - `packages/flutter_midi_command_platform_interface`: shared platform contracts
-- `packages/flutter_midi_command_linux`: Linux serial MIDI wrapper
-- `packages/flutter_midi_command_windows`: Windows serial MIDI wrapper
+- `packages/flutter_midi_command_linux`: Linux host MIDI wrapper
+- `packages/flutter_midi_command_windows`: Windows host MIDI wrapper
 - `packages/flutter_midi_command_ble`: shared BLE MIDI transport using `universal_ble`
 - `packages/flutter_midi_command_web`: browser Web MIDI transport
   See `packages/flutter_midi_command_web/README.md` for web-specific runtime/permission details.
@@ -358,7 +358,7 @@ final stateStream = midi.onBluetoothStateChanged;
 
 ### Architecture note
 
-`MidiCommandPlatform` now only describes native serial/host MIDI operations.
+`MidiCommandPlatform` now only describes native host MIDI operations.
 Shared BLE discovery/connection lives in `MidiBleTransport`, implemented in Dart (`flutter_midi_command_ble`).
 Host-native backends may also report paired Bluetooth devices as `MidiDeviceType.ble`.
 Web MIDI is implemented by `flutter_midi_command_web` using browser Web MIDI APIs.
