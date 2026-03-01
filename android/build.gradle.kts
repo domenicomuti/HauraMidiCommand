@@ -6,7 +6,6 @@ plugins {
 rootProject.allprojects {
     repositories {
         google()
-        jcenter()
         mavenCentral()
     }
 }
